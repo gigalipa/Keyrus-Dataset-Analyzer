@@ -67,25 +67,25 @@ This roadmap delivers a local React/Tailwind web application that enables consul
 **Definition of done:** Complete analysis including columns, data types, missing values, duplicates, and outliers for any uploaded dataset.
 
 #### Milestone 3.1 — Structural analysis
-- [ ] **Task:** Extract column metadata — *why:* Foundation for all subsequent analysis — *done when:* Array of column objects exists with names, indices, and sample values
-- [ ] **Task:** Infer data types per column — *why:* Enables type-specific processing and validation — *done when:* Each column is classified as string, number, integer, float, date, boolean, or null
-- [ ] **Task:** Calculate basic dataset statistics — *why:* Quantitative understanding of the data — *done when:* Total rows, total columns, file size in MB are available
+- [X] **Task:** Extract column metadata — *why:* Foundation for all subsequent analysis — *done when:* Array of column objects exists with names, indices, and sample values
+- [X] **Task:** Infer data types per column — *why:* Enables type-specific processing and validation — *done when:* Each column is classified as string, number, integer, float, date, boolean, or null
+- [X] **Task:** Calculate basic dataset statistics — *why:* Quantitative understanding of the data — *done when:* Total rows, total columns, file size in MB are available
 
 #### Milestone 3.2 — Numeric column analysis
-- [ ] **Task:** Calculate descriptive statistics — *why:* Core quantitative analysis — *done when:* For numeric columns: min, max, mean, median, mode, standard deviation, quartiles
-- [ ] **Task:** Identify outliers using IQR method — *why:* Flags potentially erroneous or interesting data points — *done when:* Numeric columns show outlier boundaries (Q1 - 1.5*IQR, Q3 + 1.5*IQR) and list flagged values
+- [X] **Task:** Calculate descriptive statistics — *why:* Core quantitative analysis — *done when:* For numeric columns: min, max, mean, median, mode, standard deviation, quartiles
+- [X] **Task:** Identify outliers using IQR method — *why:* Flags potentially erroneous or interesting data points — *done when:* Numeric columns show outlier boundaries (Q1 - 1.5*IQR, Q3 + 1.5*IQR) and list flagged values
 
 #### Milestone 3.3 — Data quality checks
-- [ ] **Task:** Detect missing values — *why:* Identifies data completeness issues — *done when:* Count and percentage of null/empty values reported per column
-- [ ] **Task:** Find duplicate rows — *why:* Identifies data integrity issues — *done when:* Total duplicate count and sample of first 5 duplicate rows available
-- [ ] **Task:** Check for inconsistent categorical values — *why:* Finds data entry errors or encoding issues — *done when:* For columns with <50 unique values, list all values and flag potential typos
-- [ ] **Task:** Detect mixed data types — *why:* Identifies columns with inconsistent typing — *done when:* Columns containing multiple inferred types are flagged with examples
+- [X] **Task:** Detect missing values — *why:* Identifies data completeness issues — *done when:* Count and percentage of null/empty values reported per column
+- [X] **Task:** Find duplicate rows — *why:* Identifies data integrity issues — *done when:* Total duplicate count and sample of first 5 duplicate rows available
+- [X] **Task:** Check for inconsistent categorical values — *why:* Finds data entry errors or encoding issues — *done when:* For columns with <50 unique values, list all values and flag potential typos
+- [X] **Task:** Detect mixed data types — *why:* Identifies columns with inconsistent typing — *done when:* Columns containing multiple inferred types are flagged with examples
 
 #### Milestone 3.4 — Date analysis
-- [ ] **Task:** Identify date columns — *why:* Special handling for temporal data — *done when:* Columns with date-like strings (ISO, US, EU formats) are automatically detected
-- [ ] **Task:** Calculate date range — *why:* Provides temporal context — *done when:* For date columns, min and max dates with duration are available
-- [ ] **Task:** Flag future or very old dates — *why:* Identifies likely data errors — *done when:* Dates > today or < 1900 are flagged as potentially incorrect
-- [ ] **Task:** Normalize detected dates to YYYY-MM-DD — *why:* Consistent format for downstream display and LLM context, per the resolved date-format decision — *done when:* All values in detected date columns are converted to YYYY-MM-DD before being passed to analysis or display
+- [X] **Task:** Identify date columns — *why:* Special handling for temporal data — *done when:* Columns with date-like strings (ISO, US, EU formats) are automatically detected
+- [X] **Task:** Calculate date range — *why:* Provides temporal context — *done when:* For date columns, min and max dates with duration are available
+- [X] **Task:** Flag future or very old dates — *why:* Identifies likely data errors — *done when:* Dates > today or < 1900 are flagged as potentially incorrect
+- [X] **Task:** Normalize detected dates to YYYY-MM-DD — *why:* Consistent format for downstream display and LLM context, per the resolved date-format decision — *done when:* All values in detected date columns are converted to YYYY-MM-DD before being passed to analysis or display
 
 ---
 
