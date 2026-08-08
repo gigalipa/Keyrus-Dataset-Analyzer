@@ -94,21 +94,21 @@ This roadmap delivers a local React/Tailwind web application that enables consul
 **Definition of done:** LLM generates accurate data dictionary, KPIs, business insights, recommendations, and client questions based on the uploaded dataset.
 
 #### Milestone 4.1 — LLM infrastructure
-- [X] **Task:** Configure Groq and Google AI Studio clients — *why:* Enables the two providers the app relies on: Groq (Llama 3.3 70B Versatile) for data-analysis calls, Google AI Studio for report-text generation — *done when:* Both clients read their keys and model ids from environment variables (`VITE_GROQ_API_KEY`, `VITE_GROQ_MODEL_ID`, `VITE_GOOGLE_API_KEY`, `VITE_GOOGLE_MODEL_ID`, `VITE_GOOGLE_FALLBACK_MODEL_ID` — the `VITE_` prefix is required for Vite to expose them to browser code via `import.meta.env`, since this app calls both providers directly from the client with no backend). Model ids are configurable via `.env` rather than hardcoded, so swapping models later doesn't require a code change. No UI-based key entry — the no-backend/no-UI-key-entry decision means `.env` is the only supported path.
-- [X] **Task:** Add `.env.example` — *why:* Documents the required secrets for anyone cloning the repo, since keys are never entered via the UI — *done when:* `.env.example` lists `VITE_GROQ_API_KEY`, `VITE_GROQ_MODEL_ID`, `VITE_GOOGLE_API_KEY`, `VITE_GOOGLE_MODEL_ID`, and `VITE_GOOGLE_FALLBACK_MODEL_ID` as placeholders and is committed to the repo
+- [X] **Task:** Configure Mistral and Google AI Studio clients — *why:* Enables the two providers the app relies on: Mistral for data-analysis calls, Google AI Studio for report-text generation — *done when:* Both clients read their keys and model ids from environment variables (`VITE_MISTRAL_API_KEY`, `VITE_MISTRAL_MODEL_ID`, `VITE_MISTRAL_FALLBACK_MODEL_ID`, `VITE_GOOGLE_API_KEY`, `VITE_GOOGLE_MODEL_ID`, `VITE_GOOGLE_FALLBACK_MODEL_ID` — the `VITE_` prefix is required for Vite to expose them to browser code via `import.meta.env`, since this app calls both providers directly from the client with no backend). Model ids are configurable via `.env` rather than hardcoded, so swapping models later doesn't require a code change. No UI-based key entry — the no-backend/no-UI-key-entry decision means `.env` is the only supported path.
+- [X] **Task:** Add `.env.example` — *why:* Documents the required secrets for anyone cloning the repo, since keys are never entered via the UI — *done when:* `.env.example` lists `VITE_MISTRAL_API_KEY`, `VITE_MISTRAL_MODEL_ID`, `VITE_MISTRAL_FALLBACK_MODEL_ID`, `VITE_GOOGLE_API_KEY`, `VITE_GOOGLE_MODEL_ID`, and `VITE_GOOGLE_FALLBACK_MODEL_ID` as placeholders and is committed to the repo
 - [X] **Task:** Define the shared structured-insight JSON schema — *why:* The app serves different business cases, so the UI must render and filter LLM output (KPIs, insights, recommendations, questions, dictionary entries) without hardcoding content-specific layout or fixed counts; a single schema shared by Milestones 4.2-4.4 prevents each from inventing an incompatible shape (the same drift that happened with Phase 2's three parsers) — *done when:* A shared type (e.g. `InsightItem { id, type, title, description, tags[], priority?, metadata? }` grouped into `InsightGroup { type, label, minItems, maxItems, items[] }`) exists with runtime validation (e.g. via `zod`), and per-type quantity bounds are declared in one place — not hardcoded per component — as configurable data: KPIs 2-5, insights 3-5, recommendations 3+ (no hard cap), questions 2+ (no hard cap), dictionary entries one per analyzed column
 - [X] **Task:** Create prompt engineering utilities — *why:* Ensures consistent, high-quality outputs — *done when:* Helper functions exist for: building system prompts, adding context, formatting output, and instructing the model to return JSON conforming to the shared schema (including its quantity bounds) for every structured-output call
 - [X] **Task:** Implement error handling for LLM calls — *why:* Prevents app crashes on API failures — *done when:* Network errors, rate limits, invalid responses, and schema-invalid JSON (with at least one retry) show user-friendly messages. JSON parsing is layered to significantly reduce broken-structure failures before they ever reach the retry path: markdown-fence stripping → bracket-depth-aware extraction of the outermost JSON substring (handles leading/trailing prose) → strict `JSON.parse` → `jsonrepair` fallback (fixes trailing commas, unquoted keys, single quotes, truncated/unbalanced brackets) → `JSON.parse` again. Anything that still doesn't match the shape (including jsonrepair's fallback of wrapping unparseable prose as a bare string) is caught by `schema.ts`'s zod validation, not left to crash on a raw parse error.
 - [X] **Task:** Add loading states for LLM operations — *why:* Improves user experience during API calls — *done when:* Spinner and "Generating insights..." message appear during LLM processing
 
 #### Milestone 4.2 — Data dictionary generation
-**Provider:** Groq — Llama 3.3 70B Versatile (data-analysis call, per Open Questions' LLM provider split, DeepSeek replaced with Groq per the actual .env configuration)
+**Provider:** Mistral (data-analysis call, per Open Questions' LLM provider split, per the actual .env configuration)
 - [X] **Task:** Build data dictionary prompt template — *why:* Explains meaning of variables and dataset structure — *done when:* Prompt template includes: column names, sample values, data types, and dataset context, and requests output conforming to the shared `InsightItem`/`InsightGroup` schema (one dictionary-entry item per column)
 - [X] **Task:** Implement LLM call for data dictionary — *why:* Automates data understanding — *done when:* Given column info, returns clear explanations of each field's purpose and meaning as schema-conformant, runtime-validated JSON
 - [X] **Task:** Create data dictionary display component — *why:* Presents LLM output clearly and lets the UI filter/adapt to content generically — *done when:* Renders from the shared schema (not a bespoke shape): each column has name, description, type, example values in a card-based layout, with tag-based filtering (e.g. filter by data-quality concern, by data type)
 
 #### Milestone 4.3 — Business insights generation
-**Provider:** Groq — Llama 3.3 70B Versatile (data-analysis call, per Open Questions' LLM provider split, DeepSeek replaced with Groq per the actual .env configuration). *Routing confirmed during Milestone 4.1's dispatch.*
+**Provider:** Mistral (data-analysis call, per Open Questions' LLM provider split, per the actual .env configuration). *Routing confirmed during Milestone 4.1's dispatch.*
 - [X] **Task:** Build business insights prompt template — *why:* Extracts KPIs and recommendations from data — *done when:* Prompt template requests three schema-conformant `InsightGroup`s — KPIs (2-5 items), insights (3-5 items), recommendations (3 or more items) — each item tagged for filtering (e.g. by business domain, by confidence/severity)
 - [X] **Task:** Prepare analysis summary for LLM context — *why:* Provides data foundation for insights — *done when:* Structured summary includes: column descriptions, data quality issues, statistical highlights
 - [X] **Task:** Implement LLM call for business insights — *why:* Generates actionable business understanding — *done when:* Returns well-formatted KPIs, insights, and recommendations relevant to the data as schema-conformant, runtime-validated JSON meeting the quantity bounds above
@@ -128,22 +128,27 @@ This roadmap delivers a local React/Tailwind web application that enables consul
 **Definition of done:** Complete, polished UI that displays all analysis results understandably across all device sizes.
 
 #### Milestone 5.1 — Analysis results UI
-- [ ] **Task:** Create data overview component — *why:* Shows dataset at a glance — *done when:* Displays: file name, row count, column count, file size, upload timestamp in a header card
-- [ ] **Task:** Create data quality summary component — *why:* Highlights data issues — *done when:* Visual summary shows: missing value counts, duplicate counts, outlier counts with severity indicators
-- [ ] **Task:** Create column detail view — *why:* Allows deep dive into specific columns — *done when:* Clicking a column shows: all statistics, sample values, quality issues for that column
+- [X] **Task:** Create data overview component — *why:* Shows dataset at a glance — *done when:* Displays: file name, row count, column count, file size, upload timestamp in a header card
+- [X] **Task:** Create data quality summary component — *why:* Highlights data issues — *done when:* Visual summary shows: missing value counts, duplicate counts, outlier counts with severity indicators
+- [X] **Task:** Create column detail view — *why:* Allows deep dive into specific columns — *done when:* Clicking a column shows: all statistics, sample values, quality issues for that column
 
 #### Milestone 5.2 — Navigation and flow
-- [ ] **Task:** Implement tab-based navigation — *why:* Organizes different result types — *done when:* Tabs for: Overview, Data Quality, Data Dictionary, Business Insights, Client Questions
-- [ ] **Task:** Add sticky navigation — *why:* Easy access to sections in long results — *done when:* Tab bar stays visible at top when scrolling through results
-- [ ] **Task:** Implement scroll-to-section — *why:* Quick navigation — *done when:* Clicking a tab scrolls to the corresponding section
+- [X] **Task:** Implement tab-based navigation — *why:* Organizes different result types — *done when:* Tabs for: Overview, Data Quality, Data Dictionary, Business Insights, Client Questions
+- [X] **Task:** Add sticky navigation — *why:* Easy access to sections in long results — *done when:* Tab bar stays visible at top when scrolling through results
+- [X] **Task:** Implement scroll-to-section — *why:* Quick navigation — *done when:* Clicking a tab scrolls to the corresponding section
 
 #### Milestone 5.3 — Polish and refinement
-- [ ] **Task:** Add loading skeletons — *why:* Smoother perceived performance — *done when:* Content areas show placeholder shapes while loading instead of empty space
-- [ ] **Task:** Add copy-to-clipboard buttons — *why:* Enables easy sharing of results — *done when:* Insights, recommendations, and questions can be copied with one click
-- [ ] **Task:** Implement responsive breakpoints — *why:* Ensures mobile usability — *done when:* UI tested and adjusted for: <640px (mobile), 640-1024px (tablet), >1024px (desktop)
-- [ ] **Task:** Add keyboard navigation — *why:* Accessibility and power user experience — *done when:* Tab, Shift+Tab, Enter work correctly for all interactive elements
-- [ ] **Task:** Add download report button — *why:* Allows saving results for offline review — *done when:* Click generates PDF or Markdown of all analysis results
-- [ ] **Task:** Verify cross-browser compatibility — *why:* Ensures the app works for all officially supported browsers, per the resolved browser-support decision — *done when:* App is manually tested and confirmed working on latest Chrome, Firefox, Safari, and Edge
+- [X] **Task:** Add loading skeletons — *why:* Smoother perceived performance — *done when:* Content areas show placeholder shapes while loading instead of empty space
+- [X] **Task:** Add copy-to-clipboard buttons — *why:* Enables easy sharing of results — *done when:* Insights, recommendations, and questions can be copied with one click
+- [X] **Task:** Implement responsive breakpoints — *why:* Ensures mobile usability — *done when:* UI tested and adjusted for: <640px (mobile), 640-1024px (tablet), >1024px (desktop)
+- [X] **Task:** Add keyboard navigation — *why:* Accessibility and power user experience — *done when:* Tab, Shift+Tab, Enter work correctly for all interactive elements
+- [X] **Task:** Add download report button — *why:* Allows saving results for offline review — *done when:* Click generates PDF or Markdown of all analysis results
+- [X] **Task:** Verify cross-browser compatibility — *why:* Ensures the app works for all officially supported browsers, per the resolved browser-support decision — *done when:* App is manually tested and confirmed working on latest Chrome, Firefox, Safari, and Edge
+
+---
+
+### Phase 6 — Refining Interface & Usage After MVP Testing
+**Status:** Not yet planned. Named here as a placeholder next step, per live MVP testing — the current interface is comprehensive at a data-analysis level but not yet easy to use for non-technical, non-data-educated users. Milestones and tasks to be added once the specific usability changes are defined.
 
 ---
 
@@ -213,7 +218,7 @@ Apply this to each quality check function.
 ---
 
 ## Open questions
-- **LLM provider choice:** The system will use Groq's API (Llama 3.3 70B Versatile) for data analysis tasks, and Google AI Studio API for report text generation (generous free-tier models, primary and fallback model ids configured via `.env`). DeepSeek was the originally planned data-analysis provider but was replaced with Groq per the actual `.env` configuration.
+- **LLM provider choice:** The system uses Mistral's API for data analysis tasks, and Google AI Studio API for report text generation (both configured with primary and fallback model ids via `.env`).
 - **API key setup:** Due to the no-backend policy, the consultant won't be able to set up the API keys from the UI, so the system will be using a .env file for environmental secrets. There will be a .env.example file for GitHub repository.
 - **LLM cost handling:** Only show warnings if token-consumption related warning are disclosed by the API responses.
 - **Large file handling:** What should the hard limit be for file size? Up to 15Mb.

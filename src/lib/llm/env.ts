@@ -4,20 +4,15 @@
  * This is a Vite app with no backend, so both providers are called directly
  * from the browser (see `docs/development-process.md`'s Open Questions:
  * "API key setup"). Vite only exposes environment variables prefixed with
- * `VITE_` to client code via `import.meta.env` — un-prefixed variables
- * (like a plain `GROQ_API_KEY`) are invisible to the browser bundle. So
- * the `.env` variable names actually used by this app are:
+ * `VITE_` to client code via `import.meta.env` — un-prefixed variables are
+ * invisible to the browser bundle. So the `.env` variable names actually
+ * used by this app are:
  *
- *  - `VITE_GROQ_API_KEY`, `VITE_GROQ_MODEL_ID`
+ *  - `VITE_MISTRAL_API_KEY`, `VITE_MISTRAL_MODEL_ID`, `VITE_MISTRAL_FALLBACK_MODEL_ID`
  *  - `VITE_GOOGLE_API_KEY`, `VITE_GOOGLE_MODEL_ID`, `VITE_GOOGLE_FALLBACK_MODEL_ID`
- *  - `VITE_DEEPSEEK_API_KEY` — DeepSeek was the original data-analysis
- *    provider but has been replaced by Groq; the accessor below is kept
- *    available but is no longer wired into any active routing (see
- *    `deepseek.ts`'s header comment).
  *
  * Model IDs are read from the environment rather than hardcoded so swapping
- * models later (e.g. a newer Llama or Gemini release) doesn't require a code
- * change — only an `.env` edit.
+ * models later doesn't require a code change — only an `.env` edit.
  *
  * `.env.example` documents these names; keep it and this file in sync if
  * either changes.
@@ -39,19 +34,19 @@ function readRequiredEnvVar(varName: string): string {
   return value
 }
 
-/** Reads the DeepSeek API key, throwing `MissingApiKeyError` if unset. Kept available but unused — see this file's header comment. */
-export function getDeepSeekApiKey(): string {
-  return readRequiredEnvVar('VITE_DEEPSEEK_API_KEY')
+/** Reads the Mistral API key, throwing `MissingApiKeyError` if unset. */
+export function getMistralApiKey(): string {
+  return readRequiredEnvVar('VITE_MISTRAL_API_KEY')
 }
 
-/** Reads the Groq API key, throwing `MissingApiKeyError` if unset. */
-export function getGroqApiKey(): string {
-  return readRequiredEnvVar('VITE_GROQ_API_KEY')
+/** Reads the configured primary Mistral model id (e.g. `mistral-large-2512`), throwing `MissingApiKeyError` if unset. */
+export function getMistralModelId(): string {
+  return readRequiredEnvVar('VITE_MISTRAL_MODEL_ID')
 }
 
-/** Reads the configured Groq model id (e.g. `llama-3.3-70b-versatile`), throwing `MissingApiKeyError` if unset. */
-export function getGroqModelId(): string {
-  return readRequiredEnvVar('VITE_GROQ_MODEL_ID')
+/** Reads the configured fallback Mistral model id, throwing `MissingApiKeyError` if unset. */
+export function getMistralFallbackModelId(): string {
+  return readRequiredEnvVar('VITE_MISTRAL_FALLBACK_MODEL_ID')
 }
 
 /** Reads the Google AI Studio (Gemini) API key, throwing `MissingApiKeyError` if unset. */

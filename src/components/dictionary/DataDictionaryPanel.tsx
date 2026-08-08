@@ -1,29 +1,44 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { generateDataDictionary } from '../../lib/llm/dataDictionary'
 import { useLlmRequest } from '../../hooks/useLlmRequest'
 import type { StructuralAnalysis } from '../../lib/analysis/structural'
 import type { InsightGroup, InsightItem } from '../../lib/llm/schema'
+import { SkeletonCardGrid } from '../shared/Skeleton'
 
 interface DataDictionaryPanelProps {
   /** Phase 3's structural analysis (`analyzeStructure`) for the uploaded dataset. */
   analysis: StructuralAnalysis
   /** Optional dataset/file name, passed through to the prompt for context. */
   datasetName?: string
+  /**
+   * Notified whenever this panel's generated dictionary changes, so
+   * `ResultsView` can include it in the Milestone 5.3 downloadable Markdown
+   * report without this panel needing to know anything about reports.
+   */
+  onDataChange?: (data: InsightGroup | null) => void
 }
 
 /**
  * Phase 4, Milestone 4.2 display component: triggers `generateDataDictionary`
- * (Groq) via the shared `useLlmRequest` loading-state hook and renders the
+ * (Mistral) via the shared `useLlmRequest` loading-state hook and renders the
  * resulting `InsightGroup` — one card per column with its name, LLM-generated
  * description, data type, and example values — plus tag-based filter chips
  * (data type and data-quality-concern facets populated by
  * `dataDictionary.ts`). Renders generically from the shared schema, not a
  * bespoke shape, so it stays compatible with whatever tags/metadata a future
  * prompt revision adds.
+ *
+ * Phase 5, Part 3: per the product decision that the data dictionary (unlike
+ * business insights / client questions) should generate automatically once
+ * analysis completes, this fires `generate` itself in an effect the first
+ * time it receives a real `analysis` (and again if `analysis` changes to a
+ * new dataset), rather than waiting for a user click. The button stays as a
+ * manual "Regenerate" affordance for a fresh take after the auto-run.
  */
 export function DataDictionaryPanel({
   analysis,
   datasetName,
+  onDataChange,
 }: DataDictionaryPanelProps) {
   const { status, data, error, run } = useLlmRequest<InsightGroup>()
   const [activeTag, setActiveTag] = useState<string | null>(null)
@@ -36,6 +51,34 @@ export function DataDictionaryPanel({
       generateDataDictionary({ analysis, datasetName, signal }),
     )
   }
+
+  // Auto-trigger generation once per distinct `analysis` (new dataset),
+  // instead of requiring a manual click. Guarded by a ref (rather than
+  // relying on `status`) so this doesn't re-fire on every render and doesn't
+  // fight with a manual "Regenerate" click's own `run` call.
+  const autoTriggeredForRef = useRef<StructuralAnalysis | null>(null)
+  useEffect(() => {
+    if (columnCount === 0) return
+    if (autoTriggeredForRef.current === analysis) return
+    autoTriggeredForRef.current = analysis
+    setActiveTag(null)
+    void run((signal) =>
+      generateDataDictionary({ analysis, datasetName, signal }),
+    )
+    // Re-run only when the underlying analysis object identity changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysis, columnCount])
+
+  // Notify the parent (for the downloadable report) from the hook's own
+  // reactive `status`/`data` rather than a `run(...).then(...)` chain — the
+  // promise `run` returns resolves to `null` for a superseded/aborted
+  // request too, which would incorrectly report "no dictionary" over a
+  // still-valid in-flight regeneration. `status === 'success'` is only ever
+  // true for the current, non-stale request (guarded inside `useLlmRequest`
+  // via its own request-id check), so this can't fire out of order.
+  useEffect(() => {
+    if (status === 'success') onDataChange?.(data)
+  }, [status, data, onDataChange])
 
   const allTags = useMemo(() => collectSortedTags(data?.items ?? []), [data])
 
@@ -86,16 +129,19 @@ export function DataDictionaryPanel({
       )}
 
       {status === 'loading' && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300"
-        >
-          <span
-            aria-hidden="true"
-            className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent"
-          />
-          <span>Generating insights...</span>
+        <div className="flex flex-col gap-4">
+          <div
+            role="status"
+            aria-live="polite"
+            className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300"
+          >
+            <span
+              aria-hidden="true"
+              className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent"
+            />
+            <span>Generating insights...</span>
+          </div>
+          <SkeletonCardGrid count={Math.min(Math.max(columnCount, 3), 9)} />
         </div>
       )}
 

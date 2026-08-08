@@ -1,7 +1,7 @@
 /**
  * Structured-output request orchestration — Phase 4, Milestone 4.1. This is
  * the one place that ties together a provider's raw text-completion call
- * (`groq.ts` / `gemini.ts`), JSON parsing, and `schema.ts` validation,
+ * (`mistral.ts` / `gemini.ts`), JSON parsing, and `schema.ts` validation,
  * with the "retry once with a corrective follow-up message before failing"
  * behavior required by the roadmap's error-handling done-when condition.
  * Milestones 4.2-4.4 call `runStructuredInsightRequest` instead of talking
@@ -32,7 +32,7 @@ export interface RunStructuredInsightRequestParams {
   type: InsightType
   systemPrompt: string
   userContent: string
-  /** Provider call to use, e.g. `callGroqRaw`, or `callGeminiRaw` adapted to return just `text`. */
+  /** Provider call to use, e.g. `callMistralRaw`, or `callGeminiRaw` adapted to return just `text`. */
   callProvider: RawProviderCall
   /** For `dictionaryEntry` groups: the actual analyzed column count to validate against exactly. */
   expectedCount?: number

@@ -4,7 +4,8 @@
  * findings from Phase 3's `analyzeDataQuality`) and runs it through
  * `runStructuredInsightRequest` (`client.ts`) against Google AI Studio
  * (Gemini), per the roadmap's Milestone 4.4 provider line — the one
- * structured-output call in Phase 4 that does NOT use Groq.
+ * structured-output call in Phase 4 that does NOT use the data-analysis
+ * provider (Mistral) that Milestones 4.2/4.3 use.
  *
  * ## Contract
  *

@@ -2,13 +2,13 @@
  * Business insights generation — Phase 4, Milestone 4.3. Builds the three
  * prompt templates (KPIs, insights, recommendations) and runs the three
  * `runStructuredInsightRequest` calls concurrently (`Promise.all`, since
- * they're independent of one another) against Groq, per the roadmap's
+ * they're independent of one another) against Mistral, per the roadmap's
  * Provider line for this milestone. Consumes a `DatasetAnalysisSummary`
  * (`analysisSummary.ts`) as its data foundation rather than raw table
  * data, keeping the prompt compact and consistent with what Milestone 4.1's
  * `formatDatasetContext` expects.
  */
-import { callGroqRawText } from './groq'
+import { callMistralRawText } from './mistral'
 import { runStructuredInsightRequest } from './client'
 import {
   buildSystemPrompt,
@@ -88,7 +88,7 @@ export interface GenerateBusinessInsightsOptions {
 
 /**
  * Generates KPIs, insights, and recommendations for `summary` by running
- * three independent `runStructuredInsightRequest` calls against Groq
+ * three independent `runStructuredInsightRequest` calls against Mistral
  * concurrently. Each call validates its own response against the shared
  * `InsightGroup` schema (KPIs 2-5 items, insights 3-5, recommendations 3+)
  * and retries once on invalid JSON/schema per Milestone 4.1's client.
@@ -105,21 +105,21 @@ export async function generateBusinessInsights(
       type: 'kpi',
       systemPrompt: buildBusinessInsightsSystemPrompt('kpi'),
       userContent,
-      callProvider: callGroqRawText,
+      callProvider: callMistralRawText,
       signal: options.signal,
     }),
     runStructuredInsightRequest({
       type: 'insight',
       systemPrompt: buildBusinessInsightsSystemPrompt('insight'),
       userContent,
-      callProvider: callGroqRawText,
+      callProvider: callMistralRawText,
       signal: options.signal,
     }),
     runStructuredInsightRequest({
       type: 'recommendation',
       systemPrompt: buildBusinessInsightsSystemPrompt('recommendation'),
       userContent,
-      callProvider: callGroqRawText,
+      callProvider: callMistralRawText,
       signal: options.signal,
     }),
   ])

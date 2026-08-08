@@ -5,12 +5,20 @@ import { buildAnalysisSummary } from '../../lib/llm/analysisSummary'
 import { generateBusinessInsights } from '../../lib/llm/businessInsights'
 import type { BusinessInsightsResult } from '../../lib/llm/businessInsights'
 import type { InsightGroup, InsightItem } from '../../lib/llm/schema'
+import { SkeletonCardGrid, SkeletonList } from '../shared/Skeleton'
+import { CopyButton } from '../shared/CopyButton'
 
 interface BusinessInsightsPanelProps {
   /** The Arquero table to analyze and generate business insights for. */
   table: aq.ColumnTable
   /** The originating file, used for file-size context in the analysis summary. */
   file: File
+  /**
+   * Notified whenever this panel's generated result changes, so
+   * `ResultsView` can include it in the Milestone 5.3 downloadable Markdown
+   * report without this panel needing to know anything about reports.
+   */
+  onDataChange?: (data: BusinessInsightsResult | null) => void
 }
 
 /**
@@ -24,18 +32,30 @@ interface BusinessInsightsPanelProps {
 export function BusinessInsightsPanel({
   table,
   file,
+  onDataChange,
 }: BusinessInsightsPanelProps) {
   const { status, data, error, run } = useLlmRequest<BusinessInsightsResult>()
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
 
-  useEffect(() => {
+  // Manual/on-demand trigger, deliberately — unlike the data dictionary
+  // (which explains the dataset's own structure and auto-generates),
+  // business insights and client questions only generate when the
+  // consultant asks, so casual uploads don't burn an LLM call automatically.
+  const handleGenerate = () => {
     void run(async (signal) => {
       const summary = buildAnalysisSummary(table, file)
       return generateBusinessInsights(summary, { signal })
     })
-    // Re-run only when the underlying table/file identity changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [table, file])
+  }
+
+  // Notify the parent (for the downloadable report) from the hook's own
+  // reactive `status`/`data` rather than a `run(...).then(...)` chain — see
+  // the identical note in `DataDictionaryPanel.tsx` for why: the promise
+  // `run` returns resolves to `null` for a superseded/aborted request too,
+  // which `status === 'success'` never does.
+  useEffect(() => {
+    if (status === 'success') onDataChange?.(data)
+  }, [status, data, onDataChange])
 
   const allTags = useMemo(() => collectAllTags(data), [data])
   // Derived rather than synced via an effect: if the selected tag no longer
@@ -44,14 +64,36 @@ export function BusinessInsightsPanel({
   const effectiveSelectedTag =
     selectedTag && allTags.includes(selectedTag) ? selectedTag : null
 
-  if (status === 'idle' || status === 'loading') {
+  if (status === 'idle') {
     return (
-      <div
-        role="status"
-        aria-live="polite"
-        className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400"
-      >
-        Generating business insights...
+      <div className="flex flex-col gap-3">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Generate KPIs, insights, and actionable recommendations for this
+          dataset.
+        </p>
+        <button
+          type="button"
+          onClick={handleGenerate}
+          className="self-start rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
+        >
+          Generate business insights
+        </button>
+      </div>
+    )
+  }
+
+  if (status === 'loading') {
+    return (
+      <div className="flex flex-col gap-4">
+        <div
+          role="status"
+          aria-live="polite"
+          className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400"
+        >
+          Generating business insights...
+        </div>
+        <SkeletonCardGrid count={3} />
+        <SkeletonList count={3} />
       </div>
     )
   }
@@ -66,12 +108,7 @@ export function BusinessInsightsPanel({
         {error?.userMessage ?? 'Unknown error.'}
         <button
           type="button"
-          onClick={() =>
-            void run(async (signal) => {
-              const summary = buildAnalysisSummary(table, file)
-              return generateBusinessInsights(summary, { signal })
-            })
-          }
+          onClick={handleGenerate}
           className="ml-3 font-medium underline underline-offset-2"
         >
           Retry
@@ -87,12 +124,21 @@ export function BusinessInsightsPanel({
       aria-labelledby="business-insights-heading"
       className="flex flex-col gap-6"
     >
-      <h2
-        id="business-insights-heading"
-        className="text-lg font-semibold text-slate-900 dark:text-slate-100"
-      >
-        Business insights
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2
+          id="business-insights-heading"
+          className="text-lg font-semibold text-slate-900 dark:text-slate-100"
+        >
+          Business insights
+        </h2>
+        <button
+          type="button"
+          onClick={handleGenerate}
+          className="shrink-0 rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+        >
+          Regenerate
+        </button>
+      </div>
 
       {allTags.length > 0 && (
         <TagFilterBar
@@ -257,9 +303,19 @@ function BulletSection({ group, selectedTag }: GroupSectionProps) {
 
   return (
     <div>
-      <h3 className="mb-2 text-base font-semibold text-slate-900 dark:text-slate-100">
-        {group.label}
-      </h3>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+          {group.label}
+        </h3>
+        {items.length > 0 && (
+          <CopyButton
+            text={items
+              .map((item) => `${item.title}\n${item.description}`)
+              .join('\n\n')}
+            label={`Copy all ${group.label.toLowerCase()}`}
+          />
+        )}
+      </div>
       {items.length === 0 ? (
         <EmptyAfterFilter />
       ) : (
@@ -267,15 +323,21 @@ function BulletSection({ group, selectedTag }: GroupSectionProps) {
           {items.map((item) => (
             <li
               key={item.id}
-              className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+              className="flex items-start justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900"
             >
-              <p className="font-medium text-slate-900 dark:text-slate-100">
-                {item.title}
-              </p>
-              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                {item.description}
-              </p>
-              <ItemTags item={item} />
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-slate-900 dark:text-slate-100">
+                  {item.title}
+                </p>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                  {item.description}
+                </p>
+                <ItemTags item={item} />
+              </div>
+              <CopyButton
+                text={`${item.title}\n\n${item.description}`}
+                label={`Copy: ${item.title}`}
+              />
             </li>
           ))}
         </ul>

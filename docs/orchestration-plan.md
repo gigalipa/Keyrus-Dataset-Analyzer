@@ -20,35 +20,26 @@ questions (see `.vibe/skills/orchestrate-development-process/SKILL.md` Step 2 fo
     decision explicitly rules out UI-based key entry (no-backend policy). **Fixed:** task now requires `.env`
     only; a companion `.env.example` task was added since keys can never be entered through the UI.
 - **Traceability gaps — found and fixed:**
-  - The dual-provider decision (Groq for data-analysis calls, Google AI Studio for report-text generation —
-    originally DeepSeek for data-analysis, replaced with Groq per the actual `.env` configuration) wasn't
-    reflected in Milestone 4.1's task, and nothing said which of 4.2/4.3/4.4 uses which provider.
-    **Fixed:** Milestone 4.1 now configures both clients explicitly, and Milestones 4.2–4.4 each carry a
-    `**Provider:**` line. **Note:** the exact routing for 4.3 (business insights → Groq) and 4.4 (client
-    questions → Google AI Studio) is my best-fit reading of "data-analysis provider / Google AI Studio for report
-    text," not something the source docs state explicitly — both are marked as assumptions in the file itself.
-    **Confirm this routing before Phase 4 dispatch.**
+  - The dual-provider decision (a data-analysis provider for Milestones 4.2/4.3, Google AI Studio for
+    report-text generation in 4.4) wasn't reflected in Milestone 4.1's task, and nothing said which of
+    4.2/4.3/4.4 uses which provider. **Fixed:** Milestone 4.1 now configures both clients explicitly, and
+    Milestones 4.2–4.4 each carry a `**Provider:**` line.
   - Date normalization to YYYY-MM-DD, error-cause disclosure on parse failure, and cross-browser testing were
     resolved decisions with no corresponding task. **Fixed:** added explicit tasks/done-when clauses to
     Milestones 3.4, 2.4, and 5.3 respectively.
 - **Unclosable tasks:** none — every task has a concrete done-when. Clean.
 - **Ordering:** no phase/task depends on something a later phase produces. Clean.
 - **Architecture note (not a doc conflict, worth watching):** even with keys read from a build-time `.env`
-  rather than entered via UI, the app still calls Groq's and Google AI Studio's APIs directly from the
-  browser. If either provider blocks direct browser-origin requests (CORS), that would force a proxy and
-  collide with the "no backend" exclusion. Worth a quick confirmation before Phase 4, lower urgency than before
-  since moving to `.env` was your call and doesn't itself introduce the risk — it was already inherent to a
-  no-backend architecture calling third-party LLM APIs from the client.
-  **Resolved during Milestone 4.1 (2026-08-08):** verified with real API keys. Both DeepSeek
-  (`https://api.deepseek.com/chat/completions`) and Google AI Studio's Generative Language API
-  (`https://generativelanguage.googleapis.com`) return `Access-Control-Allow-Origin` echoing the request's
+  rather than entered via UI, the app still calls its LLM providers directly from the browser. If a provider
+  blocks direct browser-origin requests (CORS), that would force a proxy and collide with the "no backend"
+  exclusion. **Resolved during Milestone 4.1:** verified with real API keys — Mistral
+  (`https://api.mistral.ai/v1/chat/completions`) and Google AI Studio's Generative Language API
+  (`https://generativelanguage.googleapis.com`) both return `Access-Control-Allow-Origin` echoing the request's
   `Origin` header on both the CORS preflight and the actual POST response — direct browser-origin calls are
-  permitted by both providers. No backend proxy is needed. (DeepSeek's actual call returned HTTP 402
-  "Insufficient Balance" — an account-billing issue, not a CORS/auth failure; the preflight and the 402
-  response itself both carried valid CORS headers, confirming reachability.)
-  **Updated (provider swap, 2026-08-08):** DeepSeek was subsequently replaced with Groq as the data-analysis
-  provider. Groq's chat completions endpoint (`https://api.groq.com/openai/v1/chat/completions`) was verified
-  the same way — see this pass's verification notes for the real-call result.
+  permitted by both providers. No backend proxy is needed. Mistral is configured with both a primary and a
+  fallback model id (`VITE_MISTRAL_MODEL_ID` / `VITE_MISTRAL_FALLBACK_MODEL_ID`), matching Google AI Studio's
+  existing primary/fallback pattern, so a provider-side capacity limit on the primary model degrades to a
+  second model rather than failing outright.
 
 **Status:** all identified contradictions and gaps were fixed directly in `development-process.md` per your
 instruction. One assumption (4.3/4.4 provider routing) is carried forward as a Phase 4 checkpoint item since it
@@ -113,12 +104,12 @@ done-when conditions are mechanically verifiable.
 ### Phase 4 — LLM-Powered Insights
 **Mode:** mixed — sequential infrastructure, then parallel feature batch
 **Agents:**
-- `llm-infra-agent` → Milestone 4.1 (Groq + Google AI Studio client config via `.env`, `.env.example`,
+- `llm-infra-agent` → Milestone 4.1 (Mistral + Google AI Studio client config via `.env`, `.env.example`,
   prompt-engineering helpers, error handling, loading states) → **runs first, alone** — 4.2–4.4 depend on it.
   Verified by: a smoke-test call to each configured provider returns a response; a missing/invalid key produces
   the user-friendly error path; `.env.example` is present and lists both providers' key/model-id names.
-- `data-dictionary-agent` → Milestone 4.2 (Groq) — **parallel**
-- `business-insights-agent` → Milestone 4.3 (Groq, per the routing assumption above) — **parallel**
+- `data-dictionary-agent` → Milestone 4.2 (Mistral) — **parallel**
+- `business-insights-agent` → Milestone 4.3 (Mistral, per the routing assumption above) — **parallel**
 - `client-questions-agent` → Milestone 4.4 (Google AI Studio, per the routing assumption above) — **parallel**
 
   Each owns one prompt template + one LLM call + one display component, consuming Phase 3's output but not each
@@ -127,9 +118,10 @@ done-when conditions are mechanically verifiable.
   insights / 3–5 recommendations; client-questions has 5–10 numbered questions.
 
 **Checkpoint: Yes — mandatory, two reasons.**
-1. **Credentials required.** Real `VITE_GROQ_API_KEY`, `VITE_GROQ_MODEL_ID`, `VITE_GOOGLE_API_KEY`,
-   `VITE_GOOGLE_MODEL_ID`, and `VITE_GOOGLE_FALLBACK_MODEL_ID` values must exist in a local `.env` before
-   `llm-infra-agent` can be built or smoke-tested.
+1. **Credentials required.** Real `VITE_MISTRAL_API_KEY`, `VITE_MISTRAL_MODEL_ID`,
+   `VITE_MISTRAL_FALLBACK_MODEL_ID`, `VITE_GOOGLE_API_KEY`, `VITE_GOOGLE_MODEL_ID`, and
+   `VITE_GOOGLE_FALLBACK_MODEL_ID` values must exist in a local `.env` before `llm-infra-agent` can be built or
+   smoke-tested.
 2. **Confirm the provider-routing assumption** for 4.3 and 4.4 before dispatch (see Reconciliation summary) —
    it's a reasonable reading of the source docs, not a documented fact.
 
@@ -155,11 +147,11 @@ done-when conditions are mechanically verifiable.
 
 - **Shared setup:** Phase 1's `scaffold-agent` must fully complete before any later agent starts — everything
   else writes into the structure it creates.
-- **Credentials needed before Phase 4:** a local `.env` with `VITE_GROQ_API_KEY`, `VITE_GROQ_MODEL_ID`,
-  `VITE_GOOGLE_API_KEY`, `VITE_GOOGLE_MODEL_ID`, and `VITE_GOOGLE_FALLBACK_MODEL_ID` (never entered via the UI,
-  per the resolved decision).
-- **Open item carried into Phase 4:** confirm the Groq/Google AI Studio routing assumption for Milestones
-  4.3/4.4 before that phase's agents are briefed.
+- **Credentials needed before Phase 4:** a local `.env` with `VITE_MISTRAL_API_KEY`, `VITE_MISTRAL_MODEL_ID`,
+  `VITE_MISTRAL_FALLBACK_MODEL_ID`, `VITE_GOOGLE_API_KEY`, `VITE_GOOGLE_MODEL_ID`, and
+  `VITE_GOOGLE_FALLBACK_MODEL_ID` (never entered via the UI, per the resolved decision).
+- **Open item carried into Phase 4:** confirm the Mistral/Google AI Studio routing assumption for Milestones
+  4.3/4.4 before that phase's agents are briefed. (Resolved — see Reconciliation summary.)
 - **Verification data:** assemble one small fixture dataset with deliberately planted issues (duplicates,
   outliers, missing values, mixed types, a future date, mixed date formats, one non-UTF-8 file, one multi-sheet
   XLSX, one SQL dump with DDL+DML) once, early in Phase 1 or 2, and reuse it as the known-answer key for every

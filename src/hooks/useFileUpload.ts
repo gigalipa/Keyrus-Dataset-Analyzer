@@ -1,57 +1,111 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import type { UploadState } from '../types/upload'
+import { useCallback, useRef, useState } from 'react'
+import type { AnalysisResult, UploadState } from '../types/upload'
 import { validateFileExtension } from '../utils/fileValidation'
-
-const SIMULATED_PROCESSING_MS = 1200
+import { parseFileToArqueroTable, FileParseError } from '../lib/parsers'
+import { analyzeStructure } from '../lib/analysis/structural'
+import { analyzeNumericColumns } from '../lib/analysis/numeric'
+import { analyzeDataQuality } from '../lib/analysis/quality'
+import { analyzeDateColumns } from '../lib/analysis/dates'
 
 const INITIAL_STATE: UploadState = {
   status: 'idle',
   file: null,
   errorMessage: null,
+  analysis: null,
 }
 
 /**
  * Drives the upload state machine: idle -> processing -> success | error.
  *
- * Phase 1 only validates the file extension and simulates processing with a
- * short delay — real parsing is wired in during Phase 2 (Data Ingestion
- * Pipeline), at which point the simulated timeout below is replaced with an
- * actual parse call.
+ * This is the real end-to-end pipeline (Phase 5, Milestone 5.1): on
+ * `selectFile`, it parses the file into an Arquero table
+ * (`parseFileToArqueroTable`, Phase 2) and then runs Phase 3's four analysis
+ * passes against it — structural first, since numeric/quality/date analysis
+ * all depend on the `ColumnMetadata[]` structural analysis produces, the
+ * same dependency order Phase 3 documents its own modules with. The table
+ * and every analysis result are lifted into this hook's state (rather than
+ * a separate hook/context) so `success` carries everything downstream
+ * components need without re-deriving it or re-parsing the file.
+ *
+ * A monotonically increasing request id guards against a stale
+ * parse/analysis result (from a superseded file selection, or one that
+ * resolves after `reset()`) overwriting newer state — the same pattern
+ * `useLlmRequest` uses for its own async work.
  */
 export function useFileUpload() {
   const [state, setState] = useState<UploadState>(INITIAL_STATE)
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
-    }
-  }, [])
+  const requestIdRef = useRef(0)
 
   const selectFile = useCallback((file: File) => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    const requestId = ++requestIdRef.current
 
     const validationError = validateFileExtension(file)
     if (validationError) {
-      setState({ status: 'error', file: null, errorMessage: validationError })
+      setState({
+        status: 'error',
+        file: null,
+        errorMessage: validationError,
+        analysis: null,
+      })
       return
     }
 
-    setState({ status: 'processing', file, errorMessage: null })
+    // Captured now, at the start of processing, since nothing else tracks
+    // when an upload began.
+    const uploadedAt = Date.now()
 
-    // Simulated processing delay. Phase 2 replaces this with the real
-    // CSV/TSV/XLS/XLSX/SQL parsing pipeline.
-    timeoutRef.current = setTimeout(() => {
-      setState((prev) =>
-        prev.file === file
-          ? { status: 'success', file, errorMessage: null }
-          : prev,
-      )
-    }, SIMULATED_PROCESSING_MS)
+    setState({ status: 'processing', file, errorMessage: null, analysis: null })
+
+    void (async () => {
+      try {
+        const { table, meta } = await parseFileToArqueroTable(file)
+
+        // Structural analysis first — numeric/quality/date analysis all
+        // consume its ColumnMetadata[]. These run synchronously; by this
+        // point the "processing" state above has already been committed
+        // and painted (the `await` on the parser guarantees at least one
+        // tick), so the UI shows a live "Processing..." status for the
+        // full parse+analyze duration rather than looking frozen.
+        const structural = analyzeStructure(table, file)
+        const numeric = analyzeNumericColumns(table, structural.columns)
+        const quality = analyzeDataQuality(table, structural.columns)
+        const dates = analyzeDateColumns(table, structural.columns)
+
+        if (requestIdRef.current !== requestId) return
+
+        const analysis: AnalysisResult = {
+          table,
+          meta,
+          structural,
+          numeric,
+          quality,
+          dates,
+          uploadedAt,
+        }
+
+        setState({ status: 'success', file, errorMessage: null, analysis })
+      } catch (error) {
+        if (requestIdRef.current !== requestId) return
+
+        const errorMessage =
+          error instanceof FileParseError
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : 'Something went wrong analyzing this file.'
+
+        setState({
+          status: 'error',
+          file: null,
+          errorMessage,
+          analysis: null,
+        })
+      }
+    })()
   }, [])
 
   const reset = useCallback(() => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    requestIdRef.current++
     setState(INITIAL_STATE)
   }, [])
 

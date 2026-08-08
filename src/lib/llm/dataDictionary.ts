@@ -2,7 +2,7 @@
  * Data dictionary generation — Phase 4, Milestone 4.2. Builds the
  * dictionary-entry prompt (column names, sample values, data types, and
  * dataset context, per the roadmap's done-when condition) from Phase 3's
- * `StructuralAnalysis`, and calls Groq (per Milestone 4.2's Provider line)
+ * `StructuralAnalysis`, and calls Mistral (per Milestone 4.2's Provider line)
  * via the shared `runStructuredInsightRequest` (`client.ts`), returning a
  * schema-conformant `InsightGroup` with exactly one `dictionaryEntry` item
  * per analyzed column.
@@ -19,7 +19,7 @@
  * bespoke shape.
  */
 import { runStructuredInsightRequest } from './client'
-import { callGroqRawText } from './groq'
+import { callMistralRawText } from './mistral'
 import {
   buildSystemPrompt,
   formatDatasetContext,
@@ -81,7 +81,7 @@ export async function generateDataDictionary(
     type: 'dictionaryEntry',
     systemPrompt,
     userContent,
-    callProvider: callGroqRawText,
+    callProvider: callMistralRawText,
     expectedCount: columns.length,
     signal,
   })

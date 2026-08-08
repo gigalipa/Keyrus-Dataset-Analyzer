@@ -4,14 +4,20 @@ import type { ColumnMetadata } from '../../lib/analysis/structural'
 import { generateClientQuestions } from '../../lib/llm/clientQuestions'
 import type { InsightItem } from '../../lib/llm/schema'
 import { useLlmRequest } from '../../hooks/useLlmRequest'
+import { SkeletonList } from '../shared/Skeleton'
+import { CopyButton } from '../shared/CopyButton'
 
 interface ClientQuestionsPanelProps {
   columns: ColumnMetadata[]
   qualityReport: DataQualityReport
+  /**
+   * Notified whenever this panel's generated questions change (including
+   * back to `null` on a fresh dataset), so `ResultsView` can include them in
+   * the Milestone 5.3 downloadable Markdown report without this panel
+   * needing to know anything about reports.
+   */
+  onDataChange?: (data: InsightItem[] | null) => void
 }
-
-/** How long the "Copied!" confirmation stays visible after a successful copy. */
-const COPY_CONFIRMATION_MS = 2000
 
 /**
  * Milestone 4.4 display component: renders the `InsightGroup` of `type:
@@ -24,14 +30,26 @@ const COPY_CONFIRMATION_MS = 2000
 export function ClientQuestionsPanel({
   columns,
   qualityReport,
+  onDataChange,
 }: ClientQuestionsPanelProps) {
   const { status, data, error, run } =
     useLlmRequest<Awaited<ReturnType<typeof generateClientQuestions>>>()
   const [activeTopic, setActiveTopic] = useState<string | null>(null)
 
   const handleGenerate = () => {
-    run((signal) => generateClientQuestions(columns, qualityReport, signal))
+    void run((signal) =>
+      generateClientQuestions(columns, qualityReport, signal),
+    )
   }
+
+  // Notify the parent (for the downloadable report) from the hook's own
+  // reactive `status`/`data` rather than a `run(...).then(...)` chain — see
+  // the identical note in `DataDictionaryPanel.tsx` for why: the promise
+  // `run` returns resolves to `null` for a superseded/aborted request too,
+  // which `status === 'success'` never does.
+  useEffect(() => {
+    if (status === 'success') onDataChange?.(data ? data.items : null)
+  }, [status, data, onDataChange])
 
   const allTopics = useMemo(() => {
     if (!data) return []
@@ -69,16 +87,19 @@ export function ClientQuestionsPanel({
       </div>
 
       {status === 'loading' && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300"
-        >
-          <span
-            aria-hidden="true"
-            className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent"
-          />
-          <span>Generating questions...</span>
+        <div className="flex flex-col gap-3">
+          <div
+            role="status"
+            aria-live="polite"
+            className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300"
+          >
+            <span
+              aria-hidden="true"
+              className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent"
+            />
+            <span>Generating questions...</span>
+          </div>
+          <SkeletonList count={4} />
         </div>
       )}
 
@@ -179,29 +200,6 @@ interface QuestionListItemProps {
 }
 
 function QuestionListItem({ item, index }: QuestionListItemProps) {
-  const [copied, setCopied] = useState(false)
-
-  useEffect(() => {
-    if (!copied) return
-    const timeoutId = window.setTimeout(
-      () => setCopied(false),
-      COPY_CONFIRMATION_MS,
-    )
-    return () => window.clearTimeout(timeoutId)
-  }, [copied])
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(
-        `${item.title}\n\n${item.description}`,
-      )
-      setCopied(true)
-    } catch {
-      // Clipboard access denied/unavailable — silently no-op, the button
-      // simply won't show the "Copied!" confirmation.
-    }
-  }
-
   return (
     <li className="flex items-start gap-3 rounded-md border border-slate-200 p-3 dark:border-slate-800">
       <span
@@ -230,14 +228,10 @@ function QuestionListItem({ item, index }: QuestionListItemProps) {
           </div>
         )}
       </div>
-      <button
-        type="button"
-        onClick={handleCopy}
-        aria-label={`Copy question: ${item.title}`}
-        className="shrink-0 rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 hover:border-slate-400 dark:border-slate-700 dark:text-slate-300 dark:hover:border-slate-600"
-      >
-        {copied ? 'Copied!' : 'Copy'}
-      </button>
+      <CopyButton
+        text={`${item.title}\n\n${item.description}`}
+        label={`Copy question: ${item.title}`}
+      />
     </li>
   )
 }

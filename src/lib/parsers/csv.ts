@@ -151,16 +151,45 @@ function makeHeadersUnique(rawHeaders: string[]): string[] {
  * codes in ISO-8859-1, printable punctuation like curly quotes in
  * Windows-1252) will have those specific characters rendered as the
  * Windows-1252 glyph instead.
+ *
+ * Cross-browser note (Milestone 5.3 compatibility pass): `Blob.slice(...)`
+ * followed by `.arrayBuffer()` on the *sliced* blob throws a `NotFoundError`
+ * ("The object can not be found here") in Playwright's WebKit build on
+ * Windows, even though `file.arrayBuffer()` on the whole `File` and
+ * `file.stream()` both work fine on the exact same `File` object. That
+ * combination isn't reproducible in Chromium or Firefox, and per spec
+ * `Blob.slice().arrayBuffer()` is valid, so this is most likely a quirk of
+ * that specific WebKit packaging rather than a documented engine
+ * limitation — but since a real Safari user could conceivably hit the same
+ * failure mode, `readEncodingSampleBytes` below tries the fast sliced-read
+ * path first and transparently falls back to a full-file read (already a
+ * step `readFileAsText` performs anyway) if it throws, rather than letting
+ * the whole upload fail on an otherwise-working file.
  */
 export async function detectEncoding(file: File): Promise<DetectedEncoding> {
-  const sample = await file.slice(0, ENCODING_SNIFF_BYTES).arrayBuffer()
-  const bytes = new Uint8Array(sample)
+  const bytes = await readEncodingSampleBytes(file)
 
   try {
     new TextDecoder('utf-8', { fatal: true }).decode(bytes)
     return 'utf-8'
   } catch {
     return 'windows-1252'
+  }
+}
+
+/**
+ * Reads up to `ENCODING_SNIFF_BYTES` from the start of `file`. Tries the
+ * cheap `file.slice(...).arrayBuffer()` path first; if that throws (see the
+ * WebKit note on `detectEncoding` above), falls back to reading the whole
+ * file and slicing the resulting buffer instead.
+ */
+async function readEncodingSampleBytes(file: File): Promise<Uint8Array> {
+  try {
+    const sample = await file.slice(0, ENCODING_SNIFF_BYTES).arrayBuffer()
+    return new Uint8Array(sample)
+  } catch {
+    const full = await file.arrayBuffer()
+    return new Uint8Array(full.slice(0, ENCODING_SNIFF_BYTES))
   }
 }
 

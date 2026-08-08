@@ -1,15 +1,31 @@
-import { useFileUpload } from '../../hooks/useFileUpload'
-import { DataPreviewSection } from '../preview/DataPreviewSection'
+import type { UploadState } from '../../types/upload'
 import { FileDropzone } from './FileDropzone'
 import { UploadStatusBanner } from './UploadStatusBanner'
 
+interface FileUploadPanelProps {
+  state: UploadState
+  selectFile: (file: File) => void
+  reset: () => void
+}
+
 /**
- * Composes the dataset drop zone with its live status banner and drives the
- * upload state machine. Parsing is stubbed with a short simulated delay
- * until Phase 2 wires in real CSV/TSV/XLS/XLSX/SQL parsing.
+ * Composes the dataset drop zone with its live status banner. The upload
+ * state machine itself (real parsing + Phase 3 analysis, via
+ * `useFileUpload`) is owned by the parent (`App.tsx`) so the resulting
+ * `AnalysisResult` can also be handed to the Milestone 5.1 results
+ * components rendered alongside this panel.
+ *
+ * Phase 1's standalone preview (first-100-rows table + summary bar) was
+ * removed once Phase 5 wired in the real pipeline: `ResultsView`'s Overview
+ * tab (`DataOverviewCard` + `ColumnDetailView`) now shows the same
+ * information from the same real `AnalysisResult`, without a second,
+ * redundant re-parse of the file.
  */
-export function FileUploadPanel() {
-  const { state, selectFile, reset } = useFileUpload()
+export function FileUploadPanel({
+  state,
+  selectFile,
+  reset,
+}: FileUploadPanelProps) {
   const isProcessing = state.status === 'processing'
 
   return (
@@ -51,10 +67,6 @@ export function FileUploadPanel() {
         >
           Choose a different file
         </button>
-      )}
-
-      {state.status === 'success' && state.file && (
-        <DataPreviewSection file={state.file} />
       )}
     </section>
   )
