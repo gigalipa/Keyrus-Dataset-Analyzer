@@ -12,13 +12,16 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@google/genai": "^2.16.0",
     "@tailwindcss/vite": "^4.3.3",
     "arquero": "^8.0.3",
+    "jsonrepair": "^3.15.0",
     "papaparse": "^5.5.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "tailwindcss": "^4.3.3",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

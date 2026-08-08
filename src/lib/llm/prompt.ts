@@ -1,0 +1,128 @@
+/**
+ * Prompt engineering utilities — Phase 4, Milestone 4.1. Shared helpers for
+ * building the system prompt, injecting dataset context, and formatting the
+ * JSON-shape instruction (including the `InsightGroup` quantity bounds from
+ * `schema.ts`) that Milestones 4.2-4.4 use for every structured-output call.
+ * These are content-agnostic — the actual "explain this column" / "find
+ * KPIs" / "ask strategic questions" instructions belong to each milestone's
+ * own prompt template, which composes these helpers rather than
+ * reimplementing prompt scaffolding.
+ */
+import { INSIGHT_TYPE_BOUNDS, type InsightType } from './schema'
+
+/** A minimal, provider-agnostic chat message. */
+export interface PromptMessage {
+  role: 'system' | 'user'
+  content: string
+}
+
+/**
+ * Builds the shared system prompt: the consultant-facing persona/framing
+ * common to every structured-output call in this app, plus the caller's
+ * task-specific instructions appended after it.
+ */
+export function buildSystemPrompt(taskInstructions: string): string {
+  return [
+    'You are a senior data consultant assistant helping a human consultant',
+    'quickly understand a client dataset. You analyze structured summaries',
+    'of already-computed dataset statistics (never raw client records) and',
+    'respond with concise, business-relevant, non-technical language a',
+    "client's stakeholders could understand.",
+    '',
+    taskInstructions,
+    '',
+    'Always respond with a single JSON object and nothing else — no',
+    'markdown code fences, no prose before or after the JSON.',
+  ].join('\n')
+}
+
+/**
+ * Renders arbitrary dataset-context data (column metadata, quality-check
+ * summaries, statistical highlights — whatever the caller's analysis
+ * summary looks like) as a labeled JSON block ready to inject into a user
+ * message. Kept generic so Milestone 4.3's "prepare analysis summary" task
+ * can shape its own summary object without this helper needing to know its
+ * fields.
+ */
+export function formatDatasetContext(
+  label: string,
+  context: Record<string, unknown>,
+): string {
+  return `${label}:\n${JSON.stringify(context, null, 2)}`
+}
+
+/**
+ * Formats the JSON-output-shape instruction for a given `InsightType`,
+ * including the quantity bounds declared once in
+ * `schema.ts`'s `INSIGHT_TYPE_BOUNDS` — never hardcoded per prompt
+ * template. Tells the model the exact field names it must return.
+ *
+ * @param expectedCount For `dictionaryEntry`: the actual analyzed column
+ *   count, so the instruction states an exact required count instead of
+ *   the type's nominal (unbounded) range.
+ */
+export function formatInsightGroupInstruction(
+  type: InsightType,
+  expectedCount?: number,
+): string {
+  const bounds = INSIGHT_TYPE_BOUNDS[type]
+  const quantityText =
+    type === 'dictionaryEntry' && expectedCount !== undefined
+      ? `exactly ${expectedCount} item(s) — one per analyzed column`
+      : bounds.max !== undefined
+        ? `between ${bounds.min} and ${bounds.max} items`
+        : `at least ${bounds.min} items`
+
+  return [
+    `Return a single JSON object shaped like this InsightGroup:`,
+    '{',
+    `  "type": "${type}",`,
+    `  "label": "${bounds.label}",`,
+    `  "minItems": ${bounds.min},`,
+    bounds.max !== undefined ? `  "maxItems": ${bounds.max},` : undefined,
+    '  "items": [',
+    '    {',
+    '      "id": string (unique, e.g. a short kebab-case slug),',
+    `      "type": "${type}",`,
+    '      "title": string (short headline),',
+    '      "description": string (1-3 sentences, business language),',
+    '      "tags": string[] (facets for filtering, e.g. domain or severity),',
+    '      "priority": "high" | "medium" | "low" (optional),',
+    '      "metadata": object (optional, type-specific extra fields)',
+    '    }',
+    '  ]',
+    '}',
+    `The "items" array must contain ${quantityText}. Every item's "type" must be "${type}".`,
+  ]
+    .filter((line): line is string => line !== undefined)
+    .join('\n')
+}
+
+/**
+ * Builds a corrective follow-up user message for the one-retry-on-invalid-
+ * JSON flow (Part 3 error handling): tells the model exactly what was wrong
+ * with its previous response so the retry has a real chance of succeeding,
+ * instead of blindly repeating the same request.
+ */
+export function buildCorrectiveRetryMessage(issues: string): string {
+  return [
+    'Your previous response did not match the required JSON shape.',
+    'Problems found:',
+    issues,
+    '',
+    'Respond again with a single corrected JSON object satisfying every',
+    'requirement above. Do not include any explanation, markdown, or text',
+    'outside the JSON object.',
+  ].join('\n')
+}
+
+/** Assembles the final message list (system + user) for a structured-output call. */
+export function buildInsightPromptMessages(
+  systemPrompt: string,
+  userContent: string,
+): PromptMessage[] {
+  return [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userContent },
+  ]
+}
