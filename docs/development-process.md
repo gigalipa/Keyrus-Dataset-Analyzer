@@ -41,24 +41,24 @@ This roadmap delivers a local React/Tailwind web application that enables consul
 **Definition of done:** Any supported file type uploads and converts to an Arquero table without errors.
 
 #### Milestone 2.1 — CSV/TSV parsing
-- [ ] **Task:** Implement CSV/TSV file reader — *why:* Most common format for Lakeside's data — *done when:* CSV and TSV files with various delimiters parse into JavaScript arrays of objects
-- [ ] **Task:** Handle large file streaming — *why:* Prevents browser freezing or crashes — *done when:* Files up to 15MB can be processed without UI freeze or memory errors
-- [ ] **Task:** Detect and handle encoding issues — *why:* Client files may use different encodings — *done when:* UTF-8, ISO-8859-1, and Windows-1252 files display correctly
+- [X] **Task:** Implement CSV/TSV file reader — *why:* Most common format for Lakeside's data — *done when:* CSV and TSV files with various delimiters parse into JavaScript arrays of objects
+- [X] **Task:** Handle large file streaming — *why:* Prevents browser freezing or crashes — *done when:* Files up to 15MB can be processed without UI freeze or memory errors
+- [X] **Task:** Detect and handle encoding issues — *why:* Client files may use different encodings — *done when:* UTF-8, ISO-8859-1, and Windows-1252 files display correctly
 
 #### Milestone 2.2 — Excel parsing
-- [ ] **Task:** Integrate SheetJS (xlsx) library — *why:* Enables reading Excel files in the browser — *done when:* XLS and XLSX files parse correctly, preserving sheet structure
-- [ ] **Task:** Handle multi-sheet Excel files — *why:* Client data may be spread across sheets — *done when:* User can select which sheet to analyze, defaulting to first sheet
-- [ ] **Task:** Extract data from selected sheet — *why:* Focuses analysis on relevant data — *done when:* Selected sheet's data is converted to array of objects with column headers
+- [X] **Task:** Integrate SheetJS (xlsx) library — *why:* Enables reading Excel files in the browser — *done when:* XLS and XLSX files parse correctly, preserving sheet structure
+- [X] **Task:** Handle multi-sheet Excel files — *why:* Client data may be spread across sheets — *done when:* User can select which sheet to analyze, defaulting to first sheet
+- [X] **Task:** Extract data from selected sheet — *why:* Focuses analysis on relevant data — *done when:* Selected sheet's data is converted to array of objects with column headers
 
 #### Milestone 2.3 — SQL parsing
-- [ ] **Task:** Create SQL file parser — *why:* Supports SQL dump exports — *done when:* SQL files are parsed to extract table schema and sample data
-- [ ] **Task:** Handle CREATE TABLE and INSERT statements — *why:* Most common SQL dump format — *done when:* Schema is extracted from CREATE TABLE, data from INSERT statements
-- [ ] **Task:** Limit sample data extraction — *why:* Performance consideration — *done when:* Only first 1000 rows are extracted from INSERT statements
+- [X] **Task:** Create SQL file parser — *why:* Supports SQL dump exports — *done when:* SQL files are parsed to extract table schema and sample data
+- [X] **Task:** Handle CREATE TABLE and INSERT statements — *why:* Most common SQL dump format — *done when:* Schema is extracted from CREATE TABLE, data from INSERT statements
+- [X] **Task:** Limit sample data extraction — *why:* Performance consideration — *done when:* Only first 1000 rows are extracted from INSERT statements
 
 #### Milestone 2.4 — Normalization & Arquero integration
-- [ ] **Task:** Import and configure Arquero — *why:* Core data processing engine — *done when:* Arquero is available via CDN or bundle, can create tables from parsed data
-- [ ] **Task:** Normalize all formats to Arquero table — *why:* Unified processing pipeline — *done when:* CSV, TSV, XLS, XLSX, SQL all produce equivalent Arquero tables
-- [ ] **Task:** Create data validation step — *why:* Catches parse errors early with helpful messages — *done when:* Empty files, corrupt files, or unparseable data show a clear error instead of crashing, including the detected cause when one can be identified (e.g., wrong delimiter, missing header row, unsupported encoding), per the resolved error-recovery decision
+- [X] **Task:** Import and configure Arquero — *why:* Core data processing engine — *done when:* Arquero is available via CDN or bundle, can create tables from parsed data
+- [X] **Task:** Normalize all formats to Arquero table — *why:* Unified processing pipeline — *done when:* CSV, TSV, XLS, XLSX, SQL all produce equivalent Arquero tables
+- [X] **Task:** Create data validation step — *why:* Catches parse errors early with helpful messages — *done when:* Empty files, corrupt files, or unparseable data show a clear error instead of crashing, including the detected cause when one can be identified (e.g., wrong delimiter, missing header row, unsupported encoding), per the resolved error-recovery decision
 
 ---
 
