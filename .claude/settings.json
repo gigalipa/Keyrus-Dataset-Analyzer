@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(npm view *)",
+      "Bash(mkdir -p \"C:\\\\Users\\\\peraz\\\\Projects\\\\Applications\\\\lakeside-keyrus\\\\src\\\\lib\\\\parsers\")"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\peraz\\Projects\\Applications\\lakeside-keyrus\\src\\lib"
+    ]
+  }
+}

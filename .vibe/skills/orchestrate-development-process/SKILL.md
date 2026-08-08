@@ -2,7 +2,7 @@
 name: orchestrate-development-process
 description: Turns an existing development-process.md roadmap and project-description.md spec into a validated, multi-agent execution plan, then orchestrates Claude Code subagents through building, testing, and packaging the project phase by phase. Use this whenever the user wants to start, resume, or drive actual implementation from a development process / roadmap file — phrases like "follow the development process," "start building from the roadmap," "execute the plan," "let's start development," "orchestrate the build," or when they point at development-process.md and project-description.md (typically under docs/) and want to move from planning into building. Also trigger if the user asks whether a development process still matches its project description, wants a roadmap reconciled or fixed before development starts, or wants a multi-agent plan for building/testing/deploying a project from existing planning docs.
 license: CC-BY-4.0
-compatibility: Claude Code — requires Agent, TodoWrite, AskUserQuestion, Read, Write, Edit, Grep, Glob, Bash tools. Pairs with the generate-development-process skill, which produces development-process.md from project-description.md.
+compatibility: Claude Code — requires Agent, TodoWrite, AskUserQuestion, Read, Write, Edit, Grep, Glob, Bash tools. Pairs with the generate-development-process skill, which produces development-process.md from project-description.md, and with the project's update-repo skill (.claude/skills/update-repo), invoked at milestone/phase completion to keep docs and commits in sync.
 user-invocable: true
 allowed-tools: Read Write Edit Grep Glob Agent TodoWrite AskUserQuestion Bash
 ---
@@ -55,6 +55,7 @@ This is the translation step: turn the (now-trustworthy) phase/milestone/task hi
 - **`superpowers:test-driven-development`** for every task that produces logic with an observable done-when condition (which, per Step 2 check 4, should be all of them).
 - **`superpowers:verification-before-completion`** before marking any task, milestone, or phase done — a subagent's self-report is not verification.
 - **`superpowers:requesting-code-review`** / **`superpowers:code-review`** at the end of each phase, before moving on.
+- **`update-repo`** right after any milestone that's important, particularly difficult, or sensitive/delicate, and always at the end of every phase — see Step 6.
 - **`superpowers:finishing-a-development-branch`** once the whole roadmap is complete.
 
 For each phase in the roadmap, decide and record:
@@ -105,9 +106,14 @@ Once confirmed, work through the batches from `docs/orchestration-plan.md` in or
 1. Track progress with `TodoWrite` at the phase/milestone level so the user (and you, across a long session) can see where things stand.
 2. Dispatch subagents per the batching plan (parallel where planned, sequential where planned) using `Agent`, briefing each one the way `superpowers:dispatching-parallel-agents` and `superpowers:subagent-driven-development` describe — enough context to make judgment calls, not a narrow command.
 3. When a phase's tasks are done, verify against its Definition of Done for real (run it, read it, test it) before marking it complete — per `superpowers:verification-before-completion`. Don't take a subagent's "done" at face value.
-4. At any checkpoint marked in the plan, stop and surface what's ready for the user to look at. Wait for their go-ahead before the next phase's agents are dispatched.
-5. If execution surfaces something the plan didn't anticipate (a task turns out to depend on something unbuilt, a requirement turns out ambiguous), don't silently improvise around it — update `docs/orchestration-plan.md` to reflect reality and, if it changes scope or sequencing meaningfully, check with the user the same way Step 2 would.
+4. **Run the `update-repo` skill** to sync `docs/development-process.md` and `README.md` and get a commit in whenever:
+   - a milestone just verified was **important**, **particularly difficult**, or **sensitive/delicate** (touches auth, data handling, external credentials, anything hard to unwind, or anything that took noticeably more iteration/rework than the roadmap implied) — use judgment here, not every routine milestone needs this; or
+   - a **phase** just finished, unconditionally — always run `update-repo` at phase boundaries, regardless of how the phase went.
+
+   This keeps the roadmap, README, and commit history honest at the moments most likely to get lost or forgotten if the session is interrupted later. Treat it as a lightweight version of the checkpoint below, not a substitute for it — it doesn't require pausing for a go-ahead unless `update-repo` itself asks something (e.g. its push-vs-pull decision).
+5. At any checkpoint marked in the plan, stop and surface what's ready for the user to look at. Wait for their go-ahead before the next phase's agents are dispatched.
+6. If execution surfaces something the plan didn't anticipate (a task turns out to depend on something unbuilt, a requirement turns out ambiguous), don't silently improvise around it — update `docs/orchestration-plan.md` to reflect reality and, if it changes scope or sequencing meaningfully, check with the user the same way Step 2 would.
 
 ## Step 7 — Close out
 
-Once every phase's Definition of Done is verified, run a final pass with `superpowers:requesting-code-review` across the full diff, then hand off to `superpowers:finishing-a-development-branch` to decide how the work gets integrated (commit, PR, merge — whatever that skill determines fits). Report back to the user with a short summary of what was built and a pointer to `docs/orchestration-plan.md` for the full record — don't paste the whole plan or full diffs into the conversation unless asked.
+Once every phase's Definition of Done is verified, run a final pass with `superpowers:requesting-code-review` across the full diff, then hand off to `superpowers:finishing-a-development-branch` to decide how the work gets integrated (commit, PR, merge — whatever that skill determines fits). The final phase's own completion should already have triggered `update-repo` per Step 6 — no need to run it again here unless finishing the branch produces further changes worth syncing. Report back to the user with a short summary of what was built and a pointer to `docs/orchestration-plan.md` for the full record — don't paste the whole plan or full diffs into the conversation unless asked.
