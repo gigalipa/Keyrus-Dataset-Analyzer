@@ -1,0 +1,395 @@
+
+# NUPP
+
+Nearly Universal Principles of Projects
+
+[image]
+
+Esta es una versión descargable del manual en línea (https://omimo.org/es/modules/nupp/), generada el 2026‑07‑14. Consulta el sitio web para obtener versiones más recientes.
+
+NUPP forma parte de OMIMO (https://omimo.org/es/), una familia de módulos abiertos y minimalistas.
+
+Este manual puede utilizarse y distribuirse libremente bajo la licencia Creative Commons Attribution 4.0 International.
+
+OMIMO está cofinanciado por la Unión Europea. No obstante, los puntos de vista y opiniones expresados son únicamente los de OMIMO y no reflejan necesariamente los de la Unión Europea ni los de EPOS VZW. Ni la Unión Europea ni la autoridad que concede la financiación pueden ser consideradas responsables de ellos.
+
+Traducido por: Ángel Águeda, Glòria Segura, Juan Manuel Domínguez, Sabrina Stephens
+
+
+## introducción
+
+NUPP es una colección de principios casi universales de los proyectos: los que haríamos bien en seguir en todos los proyectos, independientemente de las metodologías y enfoques que utilicemos, para maximizar nuestro éxito.
+
+Cada uno de los recursos y métodos disponibles para dirigir proyectos se basa en algunos de estos NUPs (principios casi universales). Sin embargo, hay que tener en cuenta los siguientes puntos:
+
+  - Normalmente no se consideran todos, y sería útil que los profesionales tuvieran en cuenta todos los NUPs en lugar de un subconjunto.
+  - Los principios subyacentes no suelen quedar suficientemente claros en los recursos y métodos, y la mayoría de los profesionales se dedican tanto a los detalles prácticos que se olvidan de los principios y hacen cosas que no son compatibles con ellos.
+
+NUPP es compatible con los principales métodos, sistemas, recursos y marcos, como PRINCE2^(®), la Guía del PMBOK^(®), P3.express, PM², DSDM^(®), XP y Scrum. Sin embargo, puede no ser compatible con determinadas interpretaciones de esos sistemas, y ahí es donde NUPP intenta animar a los profesionales a reconsiderar sus interpretaciones.
+
+NUPP es una colección de los siguientes NUPs:
+
+  - NUP1 — Preferimos resultados y autenticidad a las afiliaciones
+  - NUP2 — preservamos y optimizamos la energía y los recursos
+  - NUP3 — Somos siempre proactivos
+  - NUP4 — Recordamos que una cadena es tan fuerte como su eslabón más débil
+  - NUP5 — No hacemos nada sin un propósito claro
+  - NUP6 — Utilizamos elementos repetibles
+
+
+## NUP1 Preferimos resultados y autenticidad a las afiliaciones
+
+[image]
+
+Todos tenemos una tendencia natural a pertenecer a grupos, una tendencia que a menudo va más allá de su forma básica, crea fuertes afiliaciones y causa problemas. Perdemos mucho más de lo que ganamos debido a las afiliaciones. Podemos llegar a ser expertos más profesionales y eficaces si no limitamos nuestra identidad y preferencias a determinados grupos.
+
+
+### Ejemplo: Ágil frente a cascada
+
+Un grupo de personas muy entusiastas tuvieron la valentía de probar enfoques de desarrollo adaptativos en el desarrollo de software en una época en la que la norma era utilizar enfoques predictivos, se reunieron y llamaron a su enfoque «Ágil». Fue una gran iniciativa para no limitar las opciones a lo que parecía necesario. Todavía hay mucha gente entusiasta y orientada a los resultados en la comunidad Ágil, pero por desgracia, también hay algunas personas en esta comunidad que convierten Ágil en un culto y consideran enemigos a todos los de fuera. Esto causa problemas de múltiples formas, entre las que se incluyen las siguientes:
+
+  - No les permite aprender de nadie que no pertenezca a su grupo
+  - Disuade a los de fuera de aprender de ellos
+  - Hace que la pertenencia al grupo sea más importante que el verdadero objetivo, lo que a su vez impide que muchos de sus miembros aprendan el verdadero significado de la Agilidad
+
+Este problema puede reducirse significativamente, si no eliminarse, utilizando «Ágil» sólo como una etiqueta que se refiere a un enfoque de desarrollo y no como una comunidad con miembros; y contando con personas que se consideren creadores, solucionadores de problemas y líderes, que vean Ágil simplemente como uno de los facilitadores en su haber y no como su identidad.
+
+No hay una guerra entre Ágil y cascada para los verdaderos profesionales.
+
+
+### Ejemplo: PRINCE2^(®) frente a la Guía del PMBOK^(®)
+
+Hay muchos profesionales en la comunidad que se asocian a PRINCE2^(®) o a la Guía del PMBOK^(®) (normalmente por su ubicación geográfica) y no están familiarizados con el otro. Todos podemos tener preferencias hacia determinados recursos, pero no como nuestra identidad, y lo que es más importante, debemos familiarizarnos con todos ellos para ampliar nuestra perspectiva y nuestras opciones.
+
+El verdadero profesional está abierto a todas las ideas, las busca, aprende sobre ellas y las utiliza como y cuando las necesita, sin afiliaciones.
+
+
+### Ejemplo: aprendizaje continuo
+
+Las afiliaciones satisfacen a la persona por el sentimiento de pertenencia que engendran, pero no la empujan a aprender, y a veces incluso la desaniman a aprender por miedo a perderlas. Cuando eres una persona libre, un experto sin afiliaciones, necesitas llenar el vacío con aprendizaje, con aprendizaje continuo.
+
+Lo que creemos hoy no es la verdad. Es simplemente nuestra mejor comprensión hasta el momento, que debe mejorarse a medida que avanzamos. Algo va mal si las ideas de uno son exactamente las mismas que hace unos años. Éste es incluso el caso de los NUPP: si vuelves al cabo de unos años y ves exactamente lo mismo, deberías sospechar.
+
+
+### Ejemplo: apertura
+
+Cuando te opongas a alguien, asegúrate de que diriges tu objeción a la idea, y no a la persona. Esto ayuda a evitar muchas tensiones. Del mismo modo, cuando alguien te objete a ti o sobre ti, intenta no interpretarlo como una guerra contra ti, sino como una discusión sobre tus ideas, y mantente abierto a ello. No escuches para responder, escucha para comprender; y trabaja con la otra persona para mejorar la idea.
+
+Algunas personas pueden dirigirse intencionadamente a ti en lugar de a la idea, en cuyo caso, debes ayudarles a centrarse en la idea en lugar de en ti antes de continuar, e intentar que siga siendo así durante toda la conversación.
+
+
+## NUP2 preservamos y optimizamos la energía y los recursos
+
+[image]
+
+Los recursos son limitados. Los recursos de que dispone el proyecto son limitados, al igual que la energía mental de que dispones para tomar buenas decisiones. Debes preservar y optimizar este recurso para ti y para el proyecto, y ayudar a los demás miembros del equipo a hacer lo mismo.
+
+
+### Ejemplo: la regla del 80/20
+
+Se puede obtener una gran parte de los posibles beneficios de la gestión de proyectos dedicando una pequeña parte del esfuerzo. En la mayoría de los casos, apuntar al 100% de los posibles beneficios es muy caro e injustificable. Debes tener en cuenta esta regla en todo lo que hagas y animar a los demás a hacer lo mismo.
+
+
+### Ejemplo: cansancio por decisiones
+
+Utilizamos una única fuente de energía mental para tomar todo tipo de decisiones y también para expresar la fuerza de voluntad. Si gastas gran parte de esta fuente en tomar decisiones innecesarias o sin importancia, tendrás menos energía para las decisiones importantes, lo que puede conducir a malos resultados. Esta es una de las razones por las que debes evitar la microgestión (el principio de «gestión por excepción» de PRINCE2^(®)).
+
+Los conflictos que tienen que ver con las ideas pueden ser útiles, pero los que tienen que ver con las personas suelen ser perjudiciales para el proyecto, y una de las consecuencias es que agotan la energía mental de los miembros del equipo. Si observas un conflicto de este tipo, debes hacer todo lo posible por encontrar la causa y resolverlo.
+
+
+### Ejemplo: ¡Cuídate!
+
+Las decisiones que tomas y la fuerza de voluntad que expresas agotan tu fuente de energía mental. En cambio, esta fuente se llena de energía cuando duermes y comes adecuadamente. Por tanto, debes cuidarte bien: asegúrate de dormir y descansar lo suficiente, y de comer bien. Si tienes hábitos perjudiciales o problemas con el sueño, no tienes que afrontarlo solo; hay muchos especialistas que pueden ayudarte a solucionar esos problemas. La actividad física también puede ayudar con esta fuente de energía, aunque los estudios aún no son concluyentes al respecto.
+
+Intenta animar a los miembros del equipo a hacer lo mismo que tú. En primer lugar, asegúrate de que trabajan a un ritmo sostenible y sin demasiadas horas extraordinarias. Luego, si puedes, intenta ofrecer comida, tentempiés y bebidas energéticos y saludables durante el tiempo de trabajo.
+
+
+### Ejemplo: equilibrio entre vida y trabajo
+
+Muchos de nosotros amamos lo que hacemos, pero eso no es todo lo que necesitamos tener en la vida. Del mismo modo que optimizas tu trabajo, deberías planificar e implementar ideas en tu vida personal, de modo que sea alegre y feliz. Cuando eres más feliz, también puedes tener más éxito en el trabajo. Si puedes, intenta animar a los miembros de tu equipo a hacer lo mismo.
+
+
+### Ejemplo: motivación
+
+La motivación es un concepto complejo. Existen algunos recursos interesantes y útiles sobre el tema, así como otros muchos más acientíficos. No obstante, deberías aprender sobre ella y utilizarla continuamente, ya que aumenta la energía mental del equipo y la posibilidad de conseguir mejores resultados para el proyecto.
+
+La motivación puede ser tan sencilla como hacer saber a la gente que has reconocido su buen trabajo con una sonrisa amable o un simple «gracias». Sin embargo, debes tener cuidado, porque muchas de las formas habituales de motivación, como las pequeñas recompensas monetarias, tienen un efecto negativo.
+
+
+### Ejemplo: colaboración y trabajo en equipo
+
+Las personas que colaboran a veces pueden tener el poder de crear mejores resultados, pero lo más importante es que los seres humanos son sociales y disfrutan formando parte de un grupo. Si puedes eliminar los aspectos negativos del trabajo en equipo y crear un entorno agradable, habrá miembros más felices en el proyecto.
+
+Sin embargo, debes tener cuidado, porque las personas son diferentes, y algunas necesitan más tiempo de relajación, concentración y soledad que otras; suele ser un ejercicio de equilibrio.
+
+
+### Ejemplo: cultura de un solo equipo
+
+Hay una tendencia a que las distintas partes interesadas creen o consideren subgrupos y provoquen tensiones con otros grupos; por ejemplo, las personas que se centran en los aspectos de negocio del proyecto frente a las que construyen el producto. Esta tensión consume mucha energía de ambas partes, que es una de las razones por las que debemos intentar construir una cultura de un solo equipo, en la que todos trabajen juntos hacia el mismo objetivo.
+
+
+### Ejemplo: la sabiduría de las multitudes
+
+Cuando un gran número de personas con diversidad se reúnen y trabajan en un entorno facilitado, existe la posibilidad de obtener muy buenos resultados, ideas y soluciones, que pueden ser incluso mejores que las procedentes de expertos individuales.
+
+Si tienes esa opción, puedes utilizarla regularmente para pedir a los miembros del equipo que te ayuden a resolver problemas difíciles del proyecto. Además de la posibilidad de obtener buenos resultados, también permite a los miembros del equipo saber que sus opiniones son apreciadas y que desempeñan un papel importante en el proyecto, lo que a su vez aumenta su nivel de energía.
+
+La Actividad E02 de P3.express es un ejemplo de utilización de la sabiduría de las multitudes en los proyectos.
+
+
+### Example: jefe facilitador de proyectos
+
+Si eres gestor de proyectos, la mayoría de las cosas que haces tienen un carácter de facilitación o, al menos, deberían tenerlo. Por otra parte, puede que veas que los miembros del equipo han tenido malas experiencias con gestores de proyectos en el pasado, y que estas experiencias están repercutiendo en su relación contigo: una parte de su energía se gasta en analizar tu comportamiento en busca de posibles amenazas, en lugar de confiar en ti. En ese caso, puedes cambiar tu título de gestor de proyectos por el de jefe facilitador de proyectos. Al fin y al cabo, eso es lo que realmente haces en el proyecto.
+
+
+## NUP3 Somos siempre proactivos
+
+[image]
+
+Hay una tendencia natural en nosotros a ser reactivos. Puede ayudarnos a conservar nuestra energía tratando asuntos sin importancia o puede darnos mejores resultados cuando nos enfrentamos a algo en lo que somos completamente incompetentes. Esas situaciones son diferentes de nuestros proyectos, y aquí podemos obtener mejores resultados siendo proactivos.
+
+
+### Ejemplo: planificación
+
+Si quieres ir en coche a un lugar nuevo y llegas tarde, puedes empezar a conducir inmediatamente para «ganar tiempo», y afrontar los posibles problemas cuando surjan. El enfoque proactivo consiste en tomarte un tiempo al principio y configurar tu sistema de navegación para que te dé la ruta más rápida basándose en el tráfico y los posibles accidentes y atascos, y luego conducir; eso es dedicar tiempo antes de ejecutar, para evitar problemas más adelante y así ahorrar tiempo al final.
+
+Al contrario de lo que algunos piensan de los proyectos Ágiles, la planificación siempre es necesaria, y sólo se trata del tipo y el nivel de detalle de los planes. Planificar antes de ejecutar es un enfoque proactivo.
+
+Recuerda la cita: dame seis horas para talar un árbol y me pasaré las cuatro primeras afilando el hacha.
+
+Si se trata de un proyecto predictivo, puedes pasarte 4 horas afilando el hacha, porque estás seguro de que vas a talar un árbol. En un proyecto ágil, no estás seguro de si vas a talar un árbol, recoger ramas rotas, cosechar césped, extraer carbón u otra cosa. No obstante, sigues necesitando tener una preparación general para todas ellas (saber dónde está la ferretería más cercana), y tener una preparación específica (afilar) cuando vayas a centrarte en una solución determinada; eso es planificación.
+
+
+### Ejemplo: planificar la planificación
+
+Planificar la forma en que vamos a ejecutar el proyecto es un enfoque proactivo. Esta proactividad puede incluso ampliarse planificando la forma en que vamos a planificar la ejecución; ése es el concepto del plan de dirección de la Guía del PMBOK^(®), las estrategias de gestión de PRINCE2^(®) y los enfoques de DSDM^(®).
+
+
+### Ejemplo: planificación continua
+
+La realidad rara vez coincide con lo que hemos planificado, y no pasa nada, pero debemos adaptar continuamente nuestros planes para asegurarnos de que siguen siendo realistas y prácticos. Debemos hacerlo en cuanto sea necesaria la adaptación, y no cuando nos encontremos con problemas. Eso es un enfoque proactivo.
+
+
+### Ejemplo: gestión de riesgos
+
+Todo el concepto de gestión de riesgos se basa en la proactividad: ante acontecimientos inciertos, en lugar de esperar a ver qué ocurre y reaccionar ante ellos, pensamos en las posibilidades y los impactos, consideramos las respuestas y probablemente hacemos algo al respecto antes de que ocurra.
+
+Ten en cuenta que lo que hacemos en los proyectos es serio; a veces se trata de la vida de las personas.
+
+
+### Ejemplo: definir roles y responsabilidades
+
+Puedes dejar que los miembros del equipo del proyecto trabajen sin funciones ni responsabilidades claras, y tarde o temprano surgirá una forma de funciones y responsabilidades, pero es demasiado costoso y puede que no funcione bien después de todo. El enfoque proactivo consiste en definirlas pronto y adaptarlas según sea necesario. Esto facilita el trabajo a todos, y pueden centrarse en producir algo, en lugar de decidir quién hace qué.
+
+El número y la variedad de roles dependen del tipo y el tamaño del proyecto; puede ser una definición sencilla como la de Scrum, algo moderado como la de P3.express o algo exhaustivo como las de DSDM^(®) y PRINCE2^(®). Sin embargo, no olvides que las descripciones de roles de estos métodos sólo se refieren a las actividades de gestión, y que siempre tienes que añadir descripciones de roles para los aspectos técnicos.
+
+
+### Ejemplo: opciones disponibles
+
+¿Debes cerrar el proyecto prematuramente o continuar con él?
+
+Rara vez hay sólo dos opciones, aunque la pregunta lo dé a entender. Tienes que tener un enfoque proactivo y considerar todas las opciones antes de tomar una decisión. Tal vez puedas replantearte el proyecto; tal vez puedas pausarlo hasta que se aclare algo más; o tal vez puedas cambiar el enfoque del proyecto. Por ejemplo, subcontratar, etc.
+
+
+### Ejemplo: pensamiento crítico
+
+Todos tenemos muchos prejuicios que nos ayudan a sobrevivir por un lado, y nos engañan para que tomemos malas decisiones por otro. Cuando se trata de tomar decisiones importantes sobre el proyecto, es mejor detenerse un momento y considerar todos los prejuicios que pueden influir en nuestra decisión antes de que causen problemas.
+
+Como referencia, puedes utilizar la lista de sesgos cognitivos que aparece en Wikipedia.
+
+Existen incluso marcos de toma de decisiones que puedes utilizar para tomar mejores decisiones. Al principio, puede distraerte e incluso molestarte utilizarlos, pero pronto te acostumbras a ellos y les sacas partido sin mucho esfuerzo consciente.
+
+
+### Ejemplo: transparencia
+
+No nos gusta retrasarnos en el proyecto ni tener ningún otro tipo de problema, pero eso no significa que debamos ocultarlo. Debes ser transparente y hacérselo saber a las partes interesadas, porque es posible que algunas de ellas puedan ayudarte y, además, tarde o temprano conocerán los problemas y sus consecuencias, y algunas de ellas pueden requerir acciones tempranas por su parte. Por ejemplo, aceptar la consecuencia negativa.
+
+
+### Ejemplo: comunicar eficazmente
+
+Puede haber muchos casos en los que envíes informes a las partes interesadas y éstas no te den ninguna respuesta. Puedes creer que todo va bien sólo porque no hay comentarios negativos, aunque puede que no sea así. Tienes que ser proactivo y comprobar si realmente han utilizado el informe y si ha servido para el propósito, y utilizar la información para ajustar tu método de comunicación; de lo contrario, esta cuestión oculta puede causar graves problemas más adelante, cuando sea demasiado difícil de solucionar.
+
+
+### Ejemplo: asume tu responsabilidad
+
+Es fácil culpar a los demás de los malos resultados. Por ejemplo, puede que quieras que tu organización te dé plena autoridad para cambiar todo en el proyecto y hacerlo a la perfección, pero no lo hacen y, como resultado, el proyecto fracasa. Éste no es un enfoque proactivo.
+
+El enfoque proactivo consiste en asumir la responsabilidad y hacer todo lo que puedas dentro de las limitaciones. No puedes esperar que la organización confíe plenamente en ti y te lo dé todo con la esperanza de obtener buenos resultados, sobre todo cuando han visto tantos proyectos fracasados. Lo que tienes que hacer es realizar una pequeña mejora dentro de las limitaciones establecidas, utilizarla para ganar un poco de confianza, algunos recursos más y un poco más de tolerancia hacia las limitaciones, y luego utilizarla para una mejora ligeramente mayor, y seguir así hasta alcanzar el objetivo óptimo.
+
+
+## NUP4 Recordamos que una cadena es tan fuerte como su eslabón más débil
+
+[image]
+
+En los proyectos hay varios dominios, y todos necesitan atención; debemos tener una perspectiva holística del proyecto. No basta con prestar atención a un dominio aparentemente importante. Por ejemplo, el tiempo. Porque todos los dominios interactúan y no funcionan correctamente a menos que todos reciban la atención adecuada.
+
+
+### Ejemplo: ¡Lo importante es el plazo!
+
+Supongamos que estás construyendo algo para los Juegos Olímpicos. Tiene un plazo muy serio, lo que hace que la gestión del tiempo sea muy importante. Pero, ¿es así? ¿Y si la calidad es tan baja que obliga a repetir el trabajo al cabo de un tiempo? Eso repercutiría en el tiempo, así que eso lo convierte en tiempo y calidad. Puede que en la definición original del proyecto figure un jardín elegante, pero sabes que si no hay tiempo suficiente, puedes omitirlo y limitarte a cubrirlo de hierba, siempre que hayas considerado esta posibilidad a tiempo y te hayas preparado para ello. Por tanto, la gestión del alcance también es importante. Ahora tenemos los ámbitos del alcance, el tiempo y la calidad en el centro de nuestra atención.
+
+¿Has oído hablar de ese famoso ejemplo en el que el presidente Kennedy conoce a un conserje de la NASA y le pregunta qué hace, y él responde: «Ayudo a poner a un hombre en la Luna»? ¿Tener ese tipo de personas en el proyecto no ayuda a cumplir el plazo?
+
+A medida que avanzas, te das cuenta de que todos y cada uno de los dominios del proyecto contribuyen a la gestión del tiempo y no puedes cumplir el plazo con un nivel aceptable de certeza a menos que prestes atención a todos los dominios.
+
+
+### Ejemplo: picotear
+
+Cuando la gente se enfrenta a una variedad de métodos, a veces empieza a seleccionar y crea una mezcla de todo lo que parece interesante de diferentes sistemas. Esto no suele funcionar porque los elementos no funcionan de forma aislada y tienen que ser compatibles entre sí. Cualquier adición o cambio en un sistema debe hacerse desde un punto de vista holístico.
+
+Por eso a veces vemos elementos contradictorios en distintos métodos; algo funciona bien en un sistema y su opuesto funciona bien en otro sistema. Ese elemento no es correcto o incorrecto por sí mismo.
+
+Lo más seguro es seleccionar una metodología para el proyecto, adaptarla y luego añadirle nuevos elementos con cautela teniendo en cuenta la coherencia de todo el sistema.
+
+
+### Ejemplo: el enfoque antiproceso
+
+Una de las mejores cosas que han hecho los métodos Ágiles es llamar la atención sobre los aspectos humanos. El Manifiesto Ágil da más valor a las personas y a las interacciones que a los procesos y herramientas, aunque quizá no sea una comparación justa. Casi todos los métodos dicen que los aspectos humanos son importantes y la verdadera diferencia con los métodos Ágiles es que los aspectos humanos son una parte integrada de sus procesos, en lugar de una simple sugerencia. Por tanto, no se trata de una competición entre aspectos humanos y procesos sino de la forma en que se ven los aspectos humanos en el sistema.
+
+No cabe duda de que algunas personas intentan sustituir los aspectos humanos por procesos más sofisticados, pero eso no es más que un mal uso. Incluso también existe lo contrario: gente que intenta sustituir los procesos por aspectos humanos, lo cual tampoco funciona bien.
+
+
+### Ejemplo: estos son todos los dominios que necesitas
+
+Cuando pienses en los dominios, debes tener cuidado de no pasar por alto ninguno de ellos. Pero, ¿qué son? Si consultas los recursos fundamentales, recibirás respuestas diferentes; y, sin embargo, ninguna de ellas es toda la verdad.
+
+Las prácticas de PRINCE2^(®) son dominios, pero sólo son los dominios que desempeñan un papel clave en la metodología. Los demás dominios son sólo implícitos.
+
+La Guía del PMBOK^(®) no es una metodología y se puede formular mucho mejor con las diez áreas de conocimiento. Sin embargo, se trata de interpretaciones de todos los ámbitos basadas en la perspectiva de la Guía del PMBOK^(®) sobre el proyecto, en lugar de una perspectiva neutral (no es que exista necesariamente una perspectiva neutral). Por ejemplo, los aspectos humanos no reciben mucha atención en la Guía del PMBOK^(®).
+
+Una buena fuente de información sobre los dominios es ICB. Sin embargo, no trata de los dominios, sino de las competencias que se requieren en el proyecto. No tiene una relación unívoca con los dominios, pero ayuda mucho a identificarlos.
+
+No hay una lista de dominios en NUPP, principalmente porque es un metasistema más que un sistema, y también porque la categorización de los dominios depende del tipo de proyecto y de su entorno; por ejemplo, un proyecto rutinario de construcción puede necesitar una perspectiva diferente a la de un proyecto de investigación creativa.
+
+
+## NUP5 No hacemos nada sin un propósito claro
+
+[image]
+
+No deberías hacer nada a menos que tenga un propósito claro. Imagina dos mundos paralelos en los que todo es igual excepto lo que estás considerando hacer: ¿Cómo de diferentes serían esos mundos? ¿Merece la pena el esfuerzo de hacer esa cosa?
+
+Si no tienes un objetivo claro en mente y sólo haces algo porque todo el mundo lo hace o porque todo el mundo dice que es importante hacerlo, entonces
+
+  - puedes no tener un beneficio real en tu caso y, por tanto, puede que no saques nada de ello; o bien
+  - aún puedes tener beneficios potenciales en tu caso, pero como no tienes el propósito en mente, tu forma de hacerlo puede no ayudar a obtener los beneficios.
+
+
+### Ejemplo: portafolios y programas
+
+Si participas en la selección e inicio de proyectos, debes asegurarte de que te centras en los beneficios y en los problemas que hay que resolver, más que en el producto que va a realizar esas cosas. El ejemplo clásico es el del fabricante de ascensores que solía recibir quejas sobre la velocidad de sus ascensores por lo que había puesto en marcha múltiples proyectos para aumentar la velocidad, sin conseguir un éxito total. Así siguieron hasta que decidieron centrarse en el problema, el aburrimiento o la incomodidad de la gente, en lugar de en la solución «natural» (ascensores más rápidos). El resultado fue que añadieron espejos a los ascensores y eso resolvió el problema de forma sencilla y barata.
+
+Recuerda que la gestión de proyectos consiste principalmente en hacer las cosas correctamente, mientras que la gestión del portafolio consiste en hacer las cosas correctas. No importa lo bien que dirijas tus proyectos; no funcionará bien si haces los proyectos equivocados. Se trata de tener un propósito.
+
+
+### Ejemplo: el proyecto en su conjunto
+
+La flexibilidad del producto varía según los proyectos. En algunos proyectos de desarrollo informático, el producto es completamente flexible y su forma final depende de la retroalimentación que generen los incrementos del producto durante el proyecto, lo que requiere un enfoque adaptativo (Ágil). En la práctica, se trata de una combinación de las capas de portafolio, programa y proyecto, y requiere prestar la máxima atención al objetivo final. Es una buena idea documentar el objetivo y tenerlo accesible; es uno de los propósitos de la «visión del producto», como se utiliza en algunos proyectos Scrum. La atención al valor de negocio en los proyectos Ágiles es su forma de garantizar la alineación con el propósito.
+
+En otros tipos de proyecto, en los que el producto es relativamente fijo y existen otros mecanismos para garantizar que el producto identificado satisfará el propósito, es posible que los miembros del equipo del proyecto desplacen gran parte de su atención del propósito al producto (de ahí el principio de «enfoque en los productos» de PRINCE2^(®)), pero sigue siendo necesario prestar al menos una mínima atención al propósito para garantizar que lo que se está construyendo satisfará el propósito, lo que puede hacerse comparando los beneficios previstos con los beneficios esperados (de ahí el principio de «justificación continua de negocio» y la práctica «caso de negocio» en PRINCE2^(®)).
+
+Cuando se ejecuta un proyecto para un cliente externo, el cliente tendría su propio propósito para el proyecto y tu empresa tendría un propósito diferente. Deberías comprender y utilizar ambos para tener realmente éxito.
+
+
+### Ejemplo: seguimiento del proyecto
+
+Centrarse en la finalidad última es necesario, pero puede resultar demasiado abstracto para muchos de los usos cotidianos. Por eso se necesita una jerarquía de motivadores para hacerlo más práctico. En primer lugar, la justificación y los beneficios del proyecto se definen en función del propósito último y luego tendrás objetivos explícitos e implícitos para las variables del proyecto (por ejemplo, tiempo, coste y calidad) para satisfacer la justificación, que a su vez satisfará el propósito último. Se trata de propósitos de nivel inferior que son útiles para muchas de nuestras tareas cotidianas.
+
+En lo que respecta al seguimiento, el seguimiento de bajo nivel del proyecto se realizará utilizando el nivel más bajo de variables porque puede que no sea posible realizar un seguimiento de la finalidad última. En este caso, debes seguir teniendo en mente el propósito: ¿cuál es la finalidad del seguimiento?
+
+Una respuesta normal y aceptable es ver si vamos por buen camino y, en caso contrario, desencadenar una determinada reacción que nos vuelva a encarrilar o ajustar los objetivos y ver si aún se puede satisfacer el propósito final. Por lo tanto, nuestras mediciones deben poder ayudarnos con este propósito de bajo nivel y las mediciones adecuadas son previsiones para las variables a la finalización; por ejemplo, ¿cuándo podríamos terminar el proyecto?, ¿cuánto dinero necesitaríamos para terminar el proyecto?
+
+Todas las demás mediciones, como los valores previstos y reales hasta la fecha, son sólo valores provisionales que necesitas para calcular las previsiones, no los valores finales que utilizas con fines de gestión.
+
+
+### Ejemplo: documentos
+
+Independientemente del enfoque de desarrollo que utilices en el proyecto, la planificación siempre es necesaria. La cuestión importante es el nivel de detalle de cada tipo de plan. Si no hay suficiente detalle en el plan, éste no podrá aportar lo suficiente y la ejecución del proyecto se basará en decisiones ad hoc en lugar de integradas y holísticas. Por otra parte, muchas personas tratan de ser precavidas y añaden demasiados detalles a su plan, lo que lo hace demasiado difícil de preparar y mantener y demasiado rígido para las incertidumbres del proyecto. Como resultado, el plan se vuelve poco realista e inútil.
+
+La mejor forma de decidir sobre el nivel de detalle es tener en mente un propósito para cada elemento del plan. Por ejemplo, si estás considerando añadir recursos al plan, debes tener un propósito para ello: ¿cómo vas a utilizarlo?, ¿cómo ayudará al proyecto?, ¿cuánto esfuerzo supondrá?, y ¿merece la pena?
+
+A veces se trata de decidir si quieres tener un determinado elemento en tus planes y, otras veces, de la forma en que quieres planificar o preparar algo. Ya sea un caso de negocio, un acta de constitución del proyecto o un informe: debes seguir preguntándote por qué estás preparando ese documento y cómo puede ayudar al proyecto.
+
+Buscar una «plantilla» es lo contrario de hacer algo basado en un propósito.
+
+
+### Ejemplo: informe de situación
+
+Es habitual tener informes de situación realmente largos en muchos proyectos. Basándonos en esta NUP, deberíamos preguntarnos cuál es la finalidad del informe y cómo podemos lograr esa finalidad, independientemente de lo que estén haciendo la mayoría de las demás personas.
+
+En muchos casos, esto puede llevarnos a preparar informes muy sencillos de una página que las partes interesadas realmente leen y comprenden, en lugar de informes largos. Esto es prestar atención al propósito.
+
+Sin embargo, si preparas informes de una página, algunas personas pueden poner objeciones sobre ti y pensar que no tienes un sistema de seguimiento «adecuado». En la práctica, esto te crea un segundo propósito (además del primero, que es ayudar a las partes interesadas a comprender el estado del proyecto), y para satisfacerlo, puedes simplemente crear un segundo tipo de informe que sea muy largo. Sin embargo, no lo mezclarás con el primer informe porque estos dos propósitos no son lo mismo.
+
+
+### Ejemplo: caso de negocio y acta de constitución del proyecto
+
+Preparar documentos como un caso de negocio y un acta de constitución del proyecto suele ser una necesidad aburrida, infructuosa y burocrática para la mayoría de la gente, mientras que todos estos documentos tienen propósitos válidos que se aplican a la mayoría de los proyectos. Si intentas encontrar una «plantilla» y rellenarla, el trabajo no es más que una pérdida de tiempo; mientras que, en cambio, puedes comprobar la finalidad real de esos documentos, ver si pueden ser útiles para tu proyecto y cómo, y luego preparar el documento de la forma que quieras, sólo para satisfacer esas finalidades: ése será el documento correcto.
+
+Mientras piensas en la forma en que puedes preparar los documentos para satisfacer sus propósitos, es posible que no pienses en todos los escenarios y se te pase algo por alto. Para evitarlo, puedes comprobar qué sugieren recursos como PRINCE2^(®), la Guía del PMBOK^(®), P3.express y DSDM^(®), y luego evaluar esas sugerencias en función de los propósitos.
+
+
+### Ejemplo: posproyecto
+
+Aunque el proyecto tiene una finalidad concreta y podemos considerar esa finalidad a lo largo del proyecto, la realización de la finalidad se evalúa principalmente en función de las previsiones realizadas durante el proyecto. Sin embargo, no debemos olvidarnos de ello cuando el proyecto esté terminado. Es importante comprobar la realización de los objetivos una vez terminado el proyecto, porque
+
+  - podemos ver cómo se alcanzan los objetivos finales y aprender de ello para futuros proyectos, y
+  - a veces los objetivos sólo se alcanzan cuando llevamos a cabo algunas tareas adicionales tras la finalización del proyecto, y comprender la necesidad de esas tareas adicionales requiere un seguimiento.
+
+El seguimiento posproyecto es un paso necesario para estar orientado a los objetivos. Es principalmente responsabilidad de los sistemas de gestión de portafolios y programas, y como la mayoría de las empresas no tienen esos niveles de gestión, este paso suele descuidarse. Por eso, métodos como P3.express y DSDM^(®) añaden este paso a sus metodologías de gestión de proyectos.
+
+
+### Ejemplo: sencillez
+
+El mundo es complejo y caótico, pero nuestros modelos son aproximaciones abstractas que reflejan partes del mundo y, por tanto, pueden ser sencillos. Por otra parte, los sistemas sencillos suelen funcionar mejor, porque podemos centrarnos en la idea principal.
+
+Muchos de nosotros intentamos obtener mejores resultados añadiendo complejidad a nuestros sistemas, con la esperanza de que se ajuste a la complejidad del mundo, aunque en la práctica esto dificulte el trabajo con el sistema y normalmente nos impida satisfacer el propósito.
+
+
+### Ejemplo: adaptación
+
+Un programa informático para escuchar música en streaming tiene una condición muy diferente de otro que se utilizará para equipar un hospital o un avión, donde la vida de las personas puede depender de él, o de un programa informático que se utilizará en un satélite, donde se supone que funcionará durante muchos años sin averiarse, y todos ellos son diferentes a construir una villa de verano, un parque de bomberos y una planta de procesamiento.
+
+Cuando tengas claros los objetivos, comprenderás mejor cómo adaptar los sistemas y artefactos a los distintos proyectos.
+
+
+## NUP6 Utilizamos elementos repetibles
+
+[image]
+
+Un enfoque ad hoc del proyecto requiere demasiada energía y recursos, y siempre corre el riesgo de omitir algunos de los elementos necesarios. La mejor forma de simplificar lo que hay que hacer es utilizar elementos repetibles y, preferiblemente, realizarlos en ciclos repetibles.
+
+
+### Ejemplo: listas de control de la calidad
+
+Una lista de control es un ejemplo sencillo de un elemento potencialmente repetible que mucha gente utiliza en su vida personal y profesional. Por ejemplo, los criterios de calidad de un entregable:
+
+  - En primer lugar, puedes crear una lista de control de todos los criterios, que es una forma de planificación.
+  - Lo que recomienda NUP6 es intentar generalizarlo: ¿hay otros entregables similares en el proyecto? En ese caso, prepara una lista de control de calidad general para esa categoría de entregables y utilízala para todos ellos. Si hay algunas variaciones, mantén la lista genérica y añade algunos elementos adicionales para los entregables individuales. Ahora tienes listas de control repetibles.
+  - Una vez que hayas preparado listas de control genéricas para varios tipos de entregables, puede que encuentres elementos que se repiten entre ellas, lo que sugiere una categoría superior virtual para ellas. En ese caso, en lugar de repetir los elementos para todas esas listas de control genéricas, puedes extraerlos y ponerlos en una lista de control superior. Al final, probablemente tendrás una única lista de control genérica para todo el proyecto. La «definición de hecho» de Scrum es un ejemplo de uso de listas de control a nivel de proyecto para la calidad (posible entre otras cosas). Al hacer esto, cada entregable pertenecerá a una jerarquía de categorías y deberá satisfacer los elementos que aparecen en las listas de control de todas las categorías de su cadena.
+
+De este modo, un elemento de la lista de control principal será repetible para todos los entregables que tenga por debajo, lo que ahorra tiempo y energía en la planificación y la ejecución.
+
+Y lo que es más importante, una vez hecho esto para un proyecto, puedes adaptarlo y utilizarlo para todos los proyectos similares en el futuro, lo que constituye una forma repetible de planificación para múltiples proyectos.
+
+
+### Ejemplo: procesos y flujos de trabajo
+
+Algunos entregables, o los objetivos vinculados a ellos, necesitan ciertos pasos que pueden estandarizarse y repetirse. Por ejemplo, si los entregables deben diseñarse individualmente y aprobarse, puedes preparar un flujo de trabajo sencillo que deje claros todos los pasos, las personas implicadas y las duraciones aproximadas, evitando así muchas dificultades. Sin embargo, debes tener cuidado de no hacer que los flujos de trabajo y los procesos sean demasiado complicados o demasiado intensos en documentación, ya que tendrá una consecuencia negativa. Todas las personas implicadas en el proyecto deben ver los flujos de trabajo y los procesos como algo que apoya su trabajo y les facilita las cosas, y no como documentación burocrática que bloquea su trabajo real.
+
+Los proyectos ágiles tienen elementos repetibles en su enfoque de desarrollo iterativo, en el que cierto tipo de actividades de desarrollo se repiten para cada característica; por ejemplo, la rutina diaria habitual en XP (eXtreme Programming): formar parejas, elegir un elemento, diseñarlo en una pizarra, construir los guiones de prueba y el código, integrar el código, etc.
+
+Además de los flujos de trabajo repetibles que pueden utilizarse para las actividades técnicas, también puedes tener elementos repetibles para las actividades de gestión de proyectos. Los procesos de la Guía del PMBOK^(®), PRINCE2^(®) y DSDM^(®), las actividades de P3.express y los eventos de Scrum son ejemplos de este concepto.
+
+
+### Ejemplo: ciclos
+
+Tener elementos repetibles para gestionar el proyecto es útil. Esto puede facilitarse aún más colocándolos en ciclos repetibles. Estos ciclos simplifican considerablemente las actividades cotidianas de las personas implicadas en la gestión y dirección del proyecto. Los ciclos de grupos de procesos en la Guía del PMBOK^(®) cuando se utilizan en un proyecto con varias fases, las etapas en PRINCE2^(®), los ciclos diarios, semanales y mensuales en P3.express, las iteraciones y bloques de tiempo en DSDM^(®) y los Sprints en Scrum son ejemplos de este concepto.
+
+Los ciclos más cortos son más fáciles de entender y utilizar que los más largos; por ejemplo, los Sprints en Scrum, en contraste con las fases según la Guía del PMBOK^(®). Sin embargo, los ciclos demasiado cortos pueden no ser suficientes para determinados tipos de proyecto, y la solución puede ser el uso de ciclos múltiples, como el uso de ciclos cortos de bloques de tiempo de DSDM^(®) junto con ciclos de iteración más largos, o el uso de ciclos diarios, semanales y mensuales de P3.express.
+
+
+### Ejemplo: métodos
+
+Utilizar una metodología o un marco para dirigir un proyecto es otro uso de los elementos que se pueden repetir. Puede ser un sistema existente, como PRINCE2^(®), P3.express, DSDM^(®) o Scrum, o uno que hayas personalizado o construido tú mismo. Sin embargo, normalmente es mejor idea empezar con uno de los métodos existentes y adaptarlo a tus necesidades que construirlo desde cero.
+
+Cualquier elemento repetible es abstracto y necesita personalización para adaptarlo al mundo real. Sin embargo, hay un espectro de abstracción y necesidad de adaptación: las listas de control de calidad pequeñas y relativamente concretas están en un extremo del espectro, con la menor cantidad de abstracción y necesidad de adaptación, mientras que las metodologías están en el otro extremo, con la mayor necesidad de adaptación. Siempre debes tener en cuenta la necesidad de adaptación, de lo contrario, el elemento repetible no se ajustará adecuadamente a tus necesidades.

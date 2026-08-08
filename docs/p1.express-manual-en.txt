@@ -1,0 +1,533 @@
+
+# P1.express
+
+The minimalist task management method
+
+[image]
+
+This is a downloadable version of the online manual (https://omimo.org/en/modules/p1.express/), generated on 2026‑07‑14. Check the website for newer versions.
+
+P1.express comes from OMIMO (https://omimo.org/en/), which is a family of open, minimalist modules.
+
+This manual can be used and distributed freely under the Creative Commons Attribution 4.0 International license.
+
+NOTE: This is a draft of P1.express to be reviewed by contributors.
+
+This is a draft of the manual for public review. If you have any comments, please email them to info@omimo.org. Please check back for the final version.
+
+OMIMO is co-funded by the European Union. Views and opinions expressed are however those of OMIMO only and do not necessarily reflect those of the European Union or EPOS VZW. Neither the European Union nor the granting authority can be held responsible for them.
+
+
+## Activity list
+
+P1.express has the following 8 activities spread across 4 cycles. These activities have different perspectives and levels of detail to help you stay in control of what you do.
+
+  - Yearly Cycle
+      - A1 – Open or close your high-level goals
+      - A2 – Clean up your task list
+  - Monthly Cycle
+      - B1 – Realign with your high-level goals
+  - Weekly Cycle
+      - C1 – Find and fix your sources of mental energy loss
+  - Daily Cycle
+      - D1 – Close your daily tasks
+      - D2 – Identify your new tasks
+      - D3 – Run a lottery for your tasks!
+      - D4 – Plan your next day
+
+
+## Introduction
+
+P1.express is a libre, minimalist task management method for individuals. It’s
+
+  - a method, not software: You can implement it with various software or even without any software.
+  - a method, not a guide: It gives you a step-by-step approach.
+  - minimalist: It focuses on the essentials and avoids clutter.
+  - libre: There are no copyright restrictions for you.
+
+
+### Goal
+
+The goals of P1.express are
+
+  - to reduce the cognitive load, overwhelm, and stress of managing your tasks,
+  - to make your work more visible to you, and
+  - to help you focus on what matters to you.
+
+An efficient task management system helps you save time and mental energy. You can invest the extra time and energy on having a more pleasant and successful personal and professional life.
+
+P1.express is not a substitute for project, program, or portfolio management. For those, you will also need the other OMIMO modules or management modules from other resources.
+
+
+### The nature of tasks
+
+The content of your task management system can consist of things to do, places to visit, ideas to explore, problems to solve, conversations to have, books to read, reminders to build or change habits, or anything else. P1.express simply calls all of them “tasks” and doesn’t differentiate between them, except according to whether they’re recurring or one-time tasks.
+
+
+### Target audience
+
+P1.express might be useful to many people, but it’s designed for people who have more than one major source of tasks that are not fully managed by someone else. These sources can be projects, programs, and operations created by various organizations or by yourself, related to your professional work, hobbies, or friends and family, etc.
+
+
+### Postponing instead of prioritizing
+
+Most task management systems sort tasks in an ordered list, from those that should be done first to those that will be done last. This is what P1.express refers to as a prioritizing system. Another meaning of “prioritizing” is to assign priority classes such as “low”, “medium”, and “high” to tasks, which is not the intended meaning in P1.express.
+
+Prioritizing systems have been used more or less successfully for some finite sets of tasks without dependencies (e.g., some IT projects). However, your personal task management system isn’t finite. When prioritizing systems are used in such semi-infinite sets of tasks, some tasks will sink to the bottom of the list and will be buried there without you ever getting to them, because new tasks are added to the top of the list at more or less the same rate as you close tasks.
+
+To avoid such buried tasks, P1.express uses a postponing system instead of a prioritizing one. This is how the postponing system works: Each day is planned the day before. In your daily planning, you’ll check all the tasks that were postponed to that day as well as tasks that remain from the day before. At that point, you’ll postpone the tasks you can’t do or don’t want to do the next day to a reasonable date in the future and keep the rest for the next day. Similarly, when you identify a new task during the day, you’ll create it in the system and then postpone it to a reasonable date when you can probably do it.
+
+
+### The P1.express process
+
+P1.express has a process visualized in its diagram. This process has four cycles for yearly, monthly, weekly, and daily activities. The management activities are shown by small circles with codes such as “A1” written inside them.
+
+As said before, you plan each day at the end of the previous day. The next day, you start working on your tasks and gradually close them. “Closing” means that there’s nothing else you want to do on the task because it’s “finished” or “closed”. These are different statuses of tasks, and there are four of them in P1.express: doing, postponed, finished, and canceled.
+
+Besides closing tasks (activity D1 in the diagram), you would continuously identify new tasks as well (activity D2). The way you identify new tasks has a significant impact on your task management system, which makes D2 an important activity for you.
+
+In addition to the tasks you’ve planned for the day, activity D3 runs a “lottery” and brings one of the postponed tasks to the current day for consideration. This activity is designed to break your routines and draw your attention to the diversity of ideas you have.
+
+Finally, you’ll end the day by planning the next day in activity D4.
+
+Besides the normal daily activities, there’s a weekly activity, C1, in which you check what you’ve done during the week, find sources of energy loss, and see how you can fix them.
+
+You also have high-level, personal goal management in P1.express. It starts in A1, when you set and revise your goals. Then, based on those goals, you will clean up your list in A2. More importantly, in B1, you’ll check what you’ve done once a month and see how you’re moving toward your goals and whether you need to make any changes.
+
+
+### Initial overwhelm
+
+You may feel overwhelmed after implementing any structured task management system. Sometimes, it’s not because of the system itself but because of unreasonable expectations you and others have of you, which are made visible with the help of the system. If so, instead of giving up on the system, use it to manage those expectations and gradually make them more realistic.
+
+
+### Metadata
+
+The metadata you need to have for each task in P1.express, besides its title, is very limited: the date, whether a task is recurring, and the frequency of the recurring tasks.
+
+You may be urged to add extra metadata such as categories, tags, and dependencies, but doing so doesn’t help most people and only makes their systems bloated and harder to work with. Don’t add extra chunks of metadata unless you’re sure the benefit of having them outweighs the trouble of using and maintaining them.
+
+P1.express, like all OMIMO modules, is minimalist, meaning that it focuses on the essentials and avoids clutter.
+
+
+### Implementation
+
+There are three general ways of implementing your task management system:
+
+  - Using pen and paper
+  - Using specialized software you can customize for P1.express
+  - Using the default software you already have on your laptop or desktop computer
+
+P1.express doesn’t recommend any of these above the others and what the best option is for you depends on your personal preferences and skills as well as your external factors. Regardless of all the determining factors, you should keep your implementation clutter-free to ensure it’s as helpful to you as it can be.
+
+The above three options are briefly introduced below. You shouldn’t rush into it, but rather take your time and consider all three before selecting the best one for you. The first option gives you a visual mental model of the system that can help you even when using the second or the third option.
+
+
+#### Implementation option #1: pen and paper
+
+You can implement P1.express without any software, just using pen and paper. To do so, write each task’s name on top of an index card, with its information below it. Leave a column for dates, and when postponing, finishing, or canceling the task, cross out the previous date and write the new date underneath it.
+
+[image]
+
+Have a box with separate spaces for the postponed, finished, and canceled tasks and a small board behind it for displaying the doing tasks. When moving a card to one of the sections in the box, make sure it’s sorted correctly among other cards, with later dates toward the back.
+
+[image]
+
+When the “finished” or “canceled” sections are full, you can open up space by archiving their oldest cards.
+
+
+#### Implementation option #2: specialized software
+
+There are many task management software packages. The following are major concerns in selecting one:
+
+1.  Is it compatible with P1.express? For example, flow boards (usually called Kanban boards) are incompatible with P1.express because they are for priority‑based systems that sort tasks in a linear list.
+2.  Your task management software should live long and serve you for many years. The shiny platform you’re considering may be obsolete a few years later.
+3.  Is your data safe in that software? Your system should prevent data loss and misuse to a degree reasonable for your case.
+4.  Is your data portable in that software? Some platforms make it difficult or nearly impossible to migrate your own data onto a new platform.
+5.  Is the software simple enough for it to become an organic part of your daily work without adding unnecessary overhead?
+
+
+#### Implementation option #3: Zero-install software
+
+If you don’t want to start using new software or prefer to keep your system as portable as possible without dependencies, you can implement P1.express using the basic software available in nearly all modern laptop or desktop computers. It can be specially interesting to power users who can make it more powerful and tailored to their needs by writing simple scripts.
+
+For a zero-install implementation of P1.express, create four directories, one for each status of tasks in P1.express (postponed, doing, canceled, and finished). Create an empty text file for each task and enter its related information (if any) inside the file. In many desktop operating systems, you can right click on an empty place in your file explorer to open a context menu; that menu usually has an option like “New → Text Document” or “Create Document” that creates an empty file for you.
+
+Your file and directory structure would look like the following:
+
+[image]
+
+The previous example uses the symbol “↻” to mark recurring tasks. You can, of course, use any other symbol or simply write “recurring” instead.
+
+The tasks in the “postponed” directory are prefixed by the date when they will come back into the “doing” directory. Those in the “finished” and “canceled” directories are prefixed with the date they were finished or canceled. Use the ISO date format (yyyy-mm-dd) so that your files are sorted correctly.
+
+If you need to have your task management system on multiple devices, you can sync it among them using solutions such as Syncthing, or use a cloud storage platform such as Nextcloud or CryptPad. (All three suggestions are free and open-source.)
+
+You can use your mobile phone to access your task management system when you don’t have access to a proper computer, but it probably won’t work well as a primary way of working with this implementation.
+
+Remember to set up some form of secure and safe backup and versioning for your task management directory. Power users can use a private Git repository for this purpose.
+
+
+
+## A1 - Open or close your high-level goals
+
+[image]
+
+
+### What
+
+At any stage in your life, you have certain goals. You won’t achieve those goals unless you consider them in the tasks you do. Your goals can have a profound impact by
+
+1.  changing the quality and method of doing tasks,
+2.  creating new tasks for you, and
+3.  changing how you spread your energy among tasks.
+
+For example, if you have a goal to “become a better designer”,
+
+1.  You might spend more time on your design tasks and use them as an opportunity for learning and experimenting. If you don’t have such a goal, you might select the fastest way of finishing your design tasks instead.
+2.  You may also add two extra tasks such as reading a recommended book on design and doing design-related charity work for a local community.
+3.  Finally, you might consider this goal when planning your next day (D4) by selecting more tasks that contribute to improving your design skills.
+
+
+### Why
+
+If you don’t make your goals explicit and don’t manage them well, they will be forgotten in the pressure of your everyday life with its infinite stream of urgent tasks. One day, you’ll open your eyes and see that many years have passed without you achieving anything noteworthy.
+
+Task management systems are normally bottom-up, meaning that they focus on small tasks and trust that larger achievements will be gained by completing those tasks. In addition to that, we need top-down management to make sure that higher achievements will be realized by completing the tasks. Many of your tasks probably come from sources such as projects, which have their own advanced top-down project management systems. However, you need to have your own simple top-down approach as well to
+
+  - also align those tasks with your high-level personal goals, and
+  - direct those personal tasks that are not directed by any external top-down management system.
+
+Remember that most of what you do for someone else’s project should contribute to the ultimate goals of that project as well as to your own personal goals. It’s a valid expectation: proper project management systems acknowledge it, and good project managers support it. If contributing to both goals is impossible for most of your tasks, it means that your work environment is not suitable for you and you might need to make fundamental changes.
+
+
+### How
+
+Have a recurring task in your system for doing this activity every year. It’s common to do it at the beginning of each calendar year, but you can schedule it for any time during the year; for example, after a significant event such as your birthday! In addition to that, sometimes, you may need to run this activity before its normal timing to adapt to significant environmental or personal changes.
+
+Most recurring tasks should have checklists, lists of tips, or some other form of information that makes repeating them easier and enables continuous improvement. So, add such information to this activity. Each time you run the activity, check to see whether you can improve your checklist or list of tips. For example, you may decide it’s best for you and your life partner or business partners to set joint goals together or at least have them compatible with each other. In that case, you can think of the best way of doing so and document the approach in the recurring task.
+
+In general, first review your old goals and see which ones you want to close because 1) they are fulfilled to a reasonable degree, or 2) you don’t want to pursue them anymore. Sometimes, you want to keep the goal open for another year, which would be the case for larger goals that need more time. Finally, you may open completely new goals for the next year.
+
+You have two options for documenting your goals:
+
+  - Either add your goals as comments inside the task, or
+  - keep them in a separate place that gives them more visibility (e.g., on the wall in front of you).
+
+Goals can be about one-time achievements or about building or changing habits. A goal doesn’t necessarily have to be concrete and actionable. When it’s not so, you will gradually make it actionable in different ways such as by identifying new tasks for it.
+
+
+### Common pitfalls
+
+For some people and organizations, setting goals is an empty action without any impact. They do it because someone is forcing them to, not because they see any value in doing it. Make sure you’re not like them, because being goal-oriented can benefit you greatly.
+
+Many individuals are used to setting goals during the New Year’s celebrations, but then soon forgetting them as they subsequently get busy with life. Taking your B1 and other P1.express activities seriously will help you avoid that common pitfall.
+
+It’s common for people to have only modest goals, fearing that they won’t be practical otherwise. However, goals are not the same as actionable tasks. You can have grand ambitions that you’re not even sure you can ever achieve, but having them directs your actions toward a better path and creates better intermediate achievements for you. So, don’t be shy about having a lofty goal like “eliminate violence against children worldwide”.
+
+Remember that only having ambitious goals is not enough for your subconscious; it needs frequent successes as well. So, compose and arrange your tasks in such a way that you can have at least one small win per day and a bigger win each week.
+
+
+
+## A2 - Clean up your task list
+
+[image]
+
+
+### What
+
+As time passes, some of your postponed tasks lose their justification. In this activity, you go through all postponed tasks and cancel those that are no longer justifiable.
+
+While the main outcome of the activity is a clean list, a welcome by-product is that you might come up with interesting new ideas and create new tasks for them.
+
+
+### Why
+
+It’s natural for some of the postponed tasks to lose their justification. It happens
+
+  - because of the combination of tasks you’ve finished or canceled before,
+  - because some of your personal preferences have changed, or
+  - because something has changed in your environment.
+
+That’s why you may end up with unjustifiable tasks in your list – but why should you have an activity like this to cancel all of them instead of canceling them whenever their time comes?
+
+Tasks that have deadlines put pressure on you and limit your options. Tasks without deadlines are the opposite: the more such tasks you have in your list, the more options you have for investing your time, which gives you more freedom and potential for growth and pleasure.
+
+A list with only 20 tasks represents a potentially sad situation: You don’t have many options and probably only react to urgent tasks that are referred to you at any given time. On the other hand, a list with more than 200 tasks shows a potentially ambitious and exciting life with many options to choose from.
+
+This concept explains one of the benefits of cleaning up your list: If you have a list of 300 tasks but 250 of them have lost meaning without being cleaned up, you may be mistaken in thinking that you have enough options, whereas it’s not really true.
+
+
+### How
+
+Create a recurring task for doing this activity and add your own tips on how to do it effectively inside the task.
+
+It’s best to do this activity soon after revising your high-level goals (A1) because your adjustment of goals may have made some tasks irrelevant.
+
+In general, you shouldn’t delete tasks, but rather mark them as canceled and set them apart. That way, you won’t lose the history of your ideas, which will be helpful in evaluating future ideas.
+
+It’s helpful to add a note within each canceled task explaining why it was canceled, unless you believe that it’s really obvious why it was canceled and will still be obvious ten later. Such notes will help you when you come up with a similar idea in a few years but can’t remember why you canceled it the last time.
+
+
+### Common pitfalls
+
+Normally, you should be able to clean up a list of up to 500 tasks in no more than two hours. If you need more time, you might be spending too much time on it. In that case, you can set a rule that if you can’t decide about a task in 20 seconds, you’ll keep it and move on to the next one. This is a general rule of thumb, though: You might realize that the clean-up process is a great source of inspiration for you and therefore it’s justifiable for you to spend as much time on it as it demands, which is also absolutely fine.
+
+You may be too conservative in cleaning up your tasks, thinking that you may change your mind in the future. Don’t be worried, because you won’t delete those tasks: you’ll just mark them as canceled and set them apart. You can always go back later and review the canceled tasks and see whether you want to revive any of them.
+
+
+
+## B1 - Realign with your high-level goals
+
+[image]
+
+
+### What
+
+The reality of everyday life makes it difficult for you to meet the goals you’ve set in A1, but that’s okay: You just have to frequently check to see how you’ve moved towards achieving those goals and how you can move a little faster towards them in the future.
+
+
+### Why
+
+There’s a constant battle between ambitious tasks that contribute to your personal goals and those forced on you by your environment as urgent, but which may not contribute as much to your personal goals. If you don’t manage it well, you become fully focused on the infinite stream of urgent tasks without achieving any personal goal.
+
+Finding ways to balance your tasks needs creative solutions (which is possible, but not easy). More importantly, though, it needs intentionality. That’s why you should stop once a month and work on it as part of your task management routine.
+
+
+### How
+
+Create a recurring task for doing this activity. It’s common to do this activity at the end of each month because many of the things you do are aligned with calendar months. However, if you’re usually busy at the end of each month, you can schedule your review to be in the middle of the month.
+
+List the steps you need to take for this activity, write them down in the task, and improve on it each time you run the task. That’s what you should do for almost any recurring task.
+
+Review everything you’ve closed in the past month and write your personal evaluation in the recurring task you’ve created for this activity. In addition, review your notes from previous months and see whether there are any important trends.
+
+If you come up with habit-making recurring tasks or one-time solutions for better alignment with your goals, create those tasks and add them to your list. Review the effectiveness of your previous realignment solutions as well.
+
+Sometimes, you can get help from someone else for this activity: an expert in your field or a related field, a mentor, a therapist, a partner, etc. If you do so, be careful not to reveal confidential information on people or organizations you work with.
+
+If you want to open a new major goal or close an existing major goal because it’s reasonably fulfilled or you’ve decided to stop pursuing it, run the full yearly cycle to do so.
+
+
+### Common pitfalls
+
+You may be tempted to skip activities like this when you’re under pressure. It’s fine to postpone it for a few days in exceptional situations, but don’t skip it. Remember that we don’t do activities like this despite the fact that we’re busy and don’t have a lot of time: we do them because we’re busy and don’t have a lot of time!
+
+
+
+## C1 - Find and fix your sources of mental energy loss
+
+[image]
+
+
+### What
+
+Once a week, stop and check to see how you’ve invested your time and attention during the week, what your primary sources of mental energy loss were, and how you can fix them next week.
+
+For example, a common source of mental energy loss for many people is unnecessary, poorly managed meetings. Some sources may be simpler; for example, spending time on an aspect of business that has not been generating enough value for a long time. On the other hand, some sources may be more complicated, such as toxic environments, people, and websites. This activity is where you identify such problems and add tasks for fixing them.
+
+
+### Why
+
+What would be considered great work or achievement for one person might be a complete loss for you because you have different goals, opportunities, and environments. For example, a ten-hour activity that has earned you 100 units of money is probably great if you usually earn 10 units of money for that amount of time, but a disaster if you normally earn 1,000.
+
+This means that energy loss is a relative concept that exists for everyone. Anyone can benefit from spotting their own energy losses and fixing them. The energy you save this way can be spent on work, growth, pleasure, family, or anything else.
+
+
+### How
+
+Create a recurring task for this activity. It’s common to do this activity at the end of the week to match the organic cycles of work and life; however, you can do it any other day during the week if you prefer.
+
+Besides checking the tasks you’ve finished during the week, also review those you’ve canceled, because canceling itself needs effort and potentially adds relative value. Moreover, remember that some sources of energy loss may not be directly reflected in your closed tasks; for example, procrastination, task switching, environmental interruptions, perfectionism, and sloppiness. To make sure you won’t forget to check all the sources, create a checklist for it in your recurring task, and try to improve it when possible.
+
+Loss of energy is a broad concept. Depending on your world view and way of life, it can cover many related losses such as those of time, money, reputation, and relationships. Make sure you identify and add every form of energy loss that matters to you to your checklist.
+
+Fixing a source of energy loss needs effort, and what you get from it should justify the effort you put into it. So, be careful not to waste your time on attempting to fix small losses, and focus on the major ones instead.
+
+Create a task for solving each source of major energy loss you identify. It’s okay if you can’t think of any solutions right away; just postpone the task to a few days later and find the solution then.
+
+
+### Common pitfalls
+
+Be careful how you describe problems, because the way you describe them may include an implied solution, which would limit your options. This concept is called anchoring bias. Keep the problem as pure as possible, identify multiple potential solutions, and then select the best.
+
+Some sources of mental energy loss may be very common in your environment or may have been with you for many years. Some of them are even promoted as desirable things by those who sell related products and services. That makes it harder to identify them as sources of energy loss. Using critical thinking and spending enough time in this activity can help you in finding them.
+
+Some sources relate to bad habits and addictions, from smoking to drugs, or even worse, social media! Fixing them lowers your energy in the short term but helps you in the long term. To manage it well, don’t fix them when you should be working on something sensitive, and never fix multiple bad habits at the same time, because that will drain you too much.
+
+Finding solutions for some sources of energy loss is not easy and needs creativity and experience. Don’t limit yourself to doing it alone, but also search online for potential solutions, talk to friends and colleagues, discuss it with experts in that domain, etc.
+
+
+
+## D1 - Close your daily tasks
+
+[image]
+
+
+### What
+
+This activity is where you spend most of your time in P1.express, closing the tasks you have listed for the day.
+
+“Closing” a task means that you don’t need or don’t want to do anything else with it, which means it’s either finished or canceled.
+
+
+### Why
+
+You need to be focused on closing your activities rather than “doing” your activities for two reasons. First, it potentially helps you focus on the results rather than on being busy. Secondly, it’s a common problem to leave tasks almost done, but unfinished, which is a great source of energy loss. As the ancient project management saying goes, the first 90% of the work accounts for the first 90% of the time and the remaining 10% of the work accounts for the other 90% of the time!
+
+
+### How
+
+Check out your list of tasks for the day. Which one would you like to, or do you have to, do first? Pick that one and focus on doing it. Preferably, don’t work on anything else before closing the task to avoid task-switching costs.
+
+You may benefit from having a fixed rhythm for working; for example, 45 minutes of uninterrupted work followed by 15 minutes of relaxation and socializing.
+
+For recurring tasks, you can usually benefit from having a checklist, a list of steps, or a list of tips and tricks in the task. If it’s the first time doing the task, create the content; otherwise, follow the existing one and improve it if needed.
+
+For non-recurring tasks, keep the task open while working on it and write down any relevant information you run into: writing is magical and gives you superpowers! Sometimes, it’s not that you have something written down to get back to later, but that the act of writing can change your relationship with the task or problem for the better by making it clearer or more structured.
+
+When a recurring task is finished, copy it to the finished directory with the current date added to it; then postpone the original task to its next planned occurrence.
+
+Sometimes, a stage of work is done, but you are waiting for input from someone else. In that case, the task is not yet closed. Ask yourself what a reasonable amount of time is to wait for that person to get back to you about the task, and then postpone the task to that date. If you don’t receive feedback by that date, the comeback of the task will be a reminder that you should get back in touch with that person about the task.
+
+
+### Common pitfalls
+
+The commonest pitfall is task-switching. It’s sometimes unavoidable, but usually avoidable if you have the right work routine.
+
+P1.express uses a postponing system rather than a prioritizing system. So, your list of tasks for the day doesn’t have any order, and you can go through them in any way you want. You can either order everything at the beginning of the day or, preferably, just decide about the next task as soon as you’re done with the previous one. Regardless of how you do it, try to optimize your way of doing it; for example,
+
+  - some people are overwhelmed by the difficulty of tasks, and for them, they may prefer to do the hardest first, so that they can calm down as soon as possible.
+  - In contrast to them, some people are more overwhelmed by the number and variety of tasks, and for them, it works best when they focus on the smallest tasks first to reduce their number sooner, and calm down that way.
+
+You need to protect your mental energy and attention: Depending on your type of work and life expectations, turn off as many phone and computer notifications as you can when working on a task, and instead of responding to messages immediately, respond when you’re done with your current in-progress task.
+
+Everyone has different levels of mental energy at different times of day and in response to different events. It’s helpful to be aware of your own typical deviations in energy level and organize your daily work accordingly.
+
+When adding information to your tasks, don’t sacrifice the readability of the text to save a few seconds, but write clearly so that you’ll be able to understand it ten years later.
+
+
+
+## D2 - Identify your new tasks
+
+[image]
+
+
+### What
+
+While working on your daily tasks, you will come up with ideas for new tasks, and your environment may refer new tasks to you as well. All of them are identified and captured in this activity.
+
+
+### Why
+
+When you realize that there’s something you have to or want to do, you should take note of it immediately; otherwise,
+
+  - you may forget it, and
+  - it would take mental energy to keep it in your mind (which is a waste), and
+  - your mind may remember it when you’re in the middle of something else, which would be distracting.
+
+
+### How
+
+Your environment refers work to you all the time. However, don’t be reactive: Don’t limit yourself to adding work that’s referred to you, but also actively look for new tasks you can add to your system. Don’t forget that this is an integrated system for your work, hobbies, and every other aspect of your life.
+
+Create new tasks as soon as they are identified. Sometimes, you may do the task immediately, even before adding it to your system. In that case, it’s better to have the self-discipline to add the task to the system afterwards, because it provides you with a good history of what you’ve done. Only tasks that are both short and unimportant are not worth submitting into the system. If it was an important task that took you only a few seconds to do, you should still add it to your system.
+
+If you have interesting ideas about the task, write them inside the task as soon as you identify it so that you won’t forget the ideas.
+
+Sometimes, you may have something in mind, but you’re not sure whether it’s a good idea to do it. Don’t wait for the decision – create its task immediately to free up your mind and have a history of your ideas. You can always cancel the task later.
+
+When possible, merge similar tasks into a recurring task to keep the list simpler, give it more structure, and discover opportunities. For example, if you have a task for reading Animal Farm and now you’re adding a new task of reading Fahrenheit 451, you can recognize a pattern. You can merge these two into a task called something like “learn how politics works”. Then you can ask yourself what other books you can add to this task, and a good answer would be The Prince.
+
+The projects you work with may have structured management systems that assign tasks to you. In that case, you’re not supposed to duplicate those tasks in your personal task management system. You have the following options, depending on the project management system:
+
+  - In a healthy setup, the project management system won’t go through the lowest level of detail but rather leaves that to you. It means that each task you have in the project management system will be converted into many smaller, manageable tasks in your personal task management system.
+  - In an unhealthy setup, where your tasks are fully detailed in the project management system, you should create very high-level tasks in your personal task management system to reflect groups of those small tasks and avoid duplicating the details. Moreover, you can create a task for finding a better job!
+
+
+### Common pitfalls
+
+If you identify a new task while working on one of your daily tasks, don’t switch to the new one right away, if possible, but create the new task and immediately get back to what you were doing before.
+
+If you’re using a computer to manage your tasks and yet find it distracting to add each new task on the computer, you can instead write new tasks on a piece of paper and enter them into your computer at the end of the day. To do that, you should have the discipline of having pen and paper handy at all times.
+
+Write the name of the task clearly so that you can understand it when you see it ten years later. A task with a name like “send the proposal” is not okay, because you will probably work on more than one proposal in your life. Something named “proposal - abc - 10k - 50 ppl” is not okay either unless you have many such tasks and a well-defined way of abbreviating them. Even then, the few seconds you save when typing may not be worth the mental energy you have to spend decoding the cryptic text every time you see it.
+
+
+
+## D3 - Run a lottery for your tasks!
+
+[image]
+
+
+### What
+
+In this activity, one of the non-recurring tasks that was postponed to the future will be selected randomly and brought to today.
+
+
+### Why
+
+There are many environmental factors that push you to focus on the short term, become reactive, and spend all your time working on “urgent” tasks dictated by external factors.
+
+This activity breaks your routine by giving you a glimpse into the diverse ideas you have for the future. You don’t have to do the task, but you should consider it.
+
+
+### How
+
+Pick a postponed task randomly and move it to the doing directory. Make sure the task you’ve picked is not recurring because they usually have a justifiably fixed routine.
+
+You might be able to have an automatic process for the lottery in your implementation. Otherwise, and especially if you’ve implemented P1.express using pen and paper, you can do it manually by rolling a set of dice. If you prefer convenience to fun, you can use a random number generator instead.
+
+
+### Common pitfalls
+
+Being busy with insufficient time doesn’t make you special but just makes you like most other people. So, don’t let it be a reason for you to skip this or any other structured activity.
+
+
+
+## D4 - Plan your next day
+
+[image]
+
+
+### What
+
+The last thing to do in your task management system each day is to plan the next day so that you know what you want to do when you wake up the following morning.
+
+
+### Why
+
+The first question is whether to plan each day at the end of the previous day or at the beginning of the day itself. Usually, planning a day doesn’t take as much energy as doing the usual tasks of that day. Therefore, your relatively low level of energy at the end of the day is enough for planning, and you don’t have to do it at the beginning of the day when you’re well rested. You might be more realistic at the end of the day as well. However, if you think that you generally prefer to plan at the beginning of the day rather than the end of the day, feel free to experiment.
+
+Secondly; normally, we plan one day at a time. This is a good idea because we have too much uncertainty to plan longer periods, and collecting the information required for proper planning of longer periods is usually not justifiable in a setup like this. However, in some cases, you need longer term planning; for example,
+
+  - when something becomes very urgent and sensitive, so you clear your plans for the next month to focus on that, or,
+  - when planning to travel and you know that you won’t be working on your tasks for a few days, you should review the tasks postponed to those days and postpone them further.
+
+In these cases, make sure that the extended postponing of tasks won’t cause problems, especially when other people are relying on the output of your work.
+
+
+### How
+
+Go through the list of tasks that were postponed to the next day as well as the remaining tasks from the current day and see which one you can or want to do the next day. You should also check the meetings and other fixed events in your agenda, because they affect how much time you have left for your tasks. For certain people, it may be necessary to check the weather forecast and other information as well.
+
+When picking tasks for the next day, have your goals that were set in A1 in mind.
+
+In a healthy setup, the timing of some tasks will be dictated by your environment, and the timing of the rest is up to you. If you don’t have enough say, it means that you’re overloaded by the environment, and you should find a way to lower that pressure.
+
+Your option to decide about the timing of tasks is how you optimize your selection of tasks to match personal preferences; for example,
+
+  - some people are more comfortable and perform better when they focus on one theme and, therefore, prefer to have similar tasks for the day.
+  - On the other hand, some people get bored if their tasks are too similar and they find it beneficial to keep tasks with different themes for their next day.
+
+When postponing a task that impacts other people’s work, make sure you’re aligned with them in your postponement decision and that you inform them of the new date.
+
+Optionally, you can create a recurring task for planning the next day. Then you can add your tips and tricks, steps, or a checklist for the perfect way of planning for you.
+
+
+### Common pitfalls
+
+Don’t keep too many tasks back for the next day, because seeing a long list can be overwhelming; keep it to a number of tasks you can realistically do. Don’t worry – on the mythical occasion that you’re done with all the tasks, you can always pick an extra postponed task.
+
+Sometimes, you may feel too bored or tired with what you’re doing or even feel blocked and incapable of doing your tasks. In such cases, if possible, you might benefit from postponing all of your current tasks to later and instead bringing in a new, different set of tasks for the next few days.
+
+When you don’t want to keep a task for the next day, you should postpone it to the future. When doing so, however, don’t automatically postpone it to the next day, because if you do, tasks will pile up and it will become too difficult to work within the system. Instead, be realistic and postpone each task to a proper time when you have a reasonable chance of doing it.
