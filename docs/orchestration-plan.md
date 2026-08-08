@@ -1,4 +1,4 @@
-# Orchestration Plan — Data Consultant App (Lakeside Provisions)
+# Orchestration Plan — Keyrus Dataset Analyzer (client: Lakeside Provisions)
 
 Produced by the `orchestrate-development-process` skill from `docs/development-process.md` and
 `docs/project-description.md`. This is a working plan, not a report — resume execution from here if a session
@@ -157,7 +157,177 @@ done-when conditions are mechanically verifiable.
   XLSX, one SQL dump with DDL+DML) once, early in Phase 1 or 2, and reuse it as the known-answer key for every
   phase's verification from Phase 2 onward.
 
+## Reconciliation summary — Phases 6-11 (beyond-MVP batch)
+
+Second reconciliation pass, run against `docs/beyond-MVP.md` as an additional spec layered on top of the
+original `docs/project-description.md`, per the `generate-development-process` skill's process. Phases 1-5
+above are untouched and already executed; this section covers only the new Phase 6-11 material added to
+`docs/development-process.md`.
+
+- **Traceability:** every beyond-MVP.md behavior (top bar/sidebar/viewport shell, automatic chained LLM
+  pipeline, loading-overlay status text, KPI cards, History sidebar + empty-state modal, Dashboard with
+  filters, Explanation, Business Insights/Questions filter+sort, Overview/Data Dictionary/Quality/Datasets
+  under "Data," raw-vs-cleaned comparison + downloads, localStorage-equivalent persistence, PDF report) maps
+  to at least one Phase 6-11 milestone. Clean.
+- **Scope creep:** no auth/backend/database reintroduced — persistence is IndexedDB, a client-side browser
+  API, not a server. Clean.
+- **Internal contradictions:** none found between Phase 6-11 tasks and the resolved Open Questions added for
+  this batch.
+- **Traceability gaps — found and fixed during drafting (not left for execution to discover):**
+  - beyond-MVP.md's literal "localStorage" wording conflicts with the existing 15MB file-size limit (Open
+    Questions, Phase 2) — localStorage's practical quota can't hold that. **Resolved with the user directly**
+    (not silently): IndexedDB is the actual storage layer; recorded in development-process.md's Open
+    Questions as a resolved item.
+  - "How issues were managed" (Quality section) requires an audit trail the analysis engine doesn't currently
+    produce — Phase 2/3 apply fixes (date normalization, encoding fallback) silently. **Fixed:** added as an
+    explicit new core-logic task in Milestone 10.3, not assumed to already exist.
+  - No charting library or PDF library existed in `package.json` before this batch. **Resolved with the
+    user:** Recharts (Milestone 9.1) and jsPDF + html2canvas (Milestone 11.1).
+- **Unclosable tasks:** none — every new task has a concrete done-when. Clean.
+- **Ordering:** Phase 6 (persistence) precedes Phase 7 (shell, needs persistence for History/state) precedes
+  Phase 8 (automated pipeline, needs both persistence to resume mid-sequence and the shell's loading overlay)
+  precedes Phase 9/10 (business/data views, need real pipeline output to render) precedes Phase 11 (PDF report,
+  needs every other section's real content to have something to export). No later-phase dependency violations.
+- **Live open questions:** none blocking — all three raised during drafting (storage mechanism, charting
+  library, PDF approach) were resolved with the user before this plan was written; see development-process.md
+  Open Questions.
+
+**Status:** clean. No unresolved contradictions carried into execution.
+
+## Execution batches — Phases 6-11 (beyond-MVP batch)
+
+### Phase 6 — Persistent Storage & Multi-Dataset History
+**Mode:** sequential
+**Agents:**
+- `storage-layer-agent` → Milestone 6.1 (persisted-record shape, IndexedDB wrapper via `idb`, quota guard) →
+  **runs first, alone** — Milestone 6.2 and every later phase read/write through this layer. Verified by: a
+  save-then-reload round-trip test using the Phase 2 fixture dataset preserves every field, including the raw
+  and cleaned Arquero tables.
+- `history-ui-agent` → Milestone 6.2 (History panel, dataset switching, delete + auto-collapse, conditional
+  upload modal) → **after** `storage-layer-agent`, since every task here calls its API. Verified by: uploading
+  2 datasets, switching between them with no re-parse/re-call, deleting both, confirming the modal reappears.
+
+**Checkpoint:** None — mechanically verifiable (save, reload, list, delete), matches the roadmap's own
+assessment.
+
+### Phase 7 — Application Shell Redesign
+**Mode:** sequential
+**Agents:**
+- `shell-topbar-agent` → Milestone 7.1 (top bar: logo/title, KPI region stub, conditionally-visible History
+  button with count badge) → verified by: badge count matches `listDatasets()` length; button hidden with zero
+  datasets loaded.
+- `shell-sidebar-agent` → Milestone 7.2 (two-section left sidebar, mobile collapse, footer action stubs) →
+  **after** `shell-topbar-agent` only in that both mount into the same shell component — otherwise independent;
+  can run in parallel if file boundaries stay clean (top bar vs. sidebar are separate components). Verified by:
+  all 8 destinations present and routable; sidebar collapses <640px.
+- `shell-routing-agent` → Milestone 7.3 (center-viewport routing, loading-overlay shell migration) → **after**
+  both — consumes the nav structure from 7.2 and wraps the whole shell for 7.1/7.2's lock-during-load
+  behavior. Verified by: each sidebar item shows its (placeholder) section; overlay renders over the full
+  shell, not just the viewport.
+
+**Checkpoint: Yes — first user-visible layout change of this batch.** Replaces Phase 5's entire navigation
+model; confirm before Phase 8-10 build real content on top of it.
+
+### Phase 8 — Automated Sequential LLM Pipeline & Loading Experience
+**Mode:** sequential
+**Agents:**
+- `pipeline-core-agent` → Milestone 8.1 (step sequence + context contract, pipeline runner with per-step
+  persistence/resume, prior-step-output chaining into prompts, manual-trigger removal) → **runs first, alone**
+  — 8.2/8.3 depend on a working pipeline to have something to reflect. Verified by: running the fixture
+  dataset through the full pipeline and inspecting the actual prompt payloads sent to confirm each later step's
+  prompt includes earlier steps' output; confirming `BusinessInsightsPanel`/`ClientQuestionsPanel` no longer
+  contain manual-trigger code.
+- `loading-overlay-agent` → Milestone 8.2 (stage-by-stage status text, shell lock during processing) →
+  **after** `pipeline-core-agent` — status text is driven by the pipeline's actual current step. Verified by:
+  each of the 5 documented status strings appears at the correct point during a real fixture-dataset run.
+- `kpi-cards-agent` → Milestone 8.3 (business-vs-data-stat KPI distinction in the prompt, top-bar KPI card
+  rendering) → **after** `pipeline-core-agent` — needs real business-insights output to render. Can run in
+  parallel with `loading-overlay-agent` (different files: prompt template vs. overlay component). Verified by:
+  2-5 KPI cards render in the top bar after a real run, content read as business-facing (not column/row stats).
+
+**Checkpoint: Yes — mandatory, same reason as MVP Phase 4.** Live LLM calls, real prompt-chaining behavior,
+and removal of manual triggers all need a real look before Phase 9/10 build views on this output. Also the
+first phase in this batch with no rollback-cheap undo — prompt-chaining behavior is expensive to redo if wrong.
+
+### Phase 9 — Business-Facing Views
+**Mode:** parallel
+**Agents:**
+- `dashboard-agent` → Milestone 9.1 (Recharts integration, dashboard layout, dashboard-wide filters) —
+  **parallel**
+- `explanation-agent` → Milestone 9.2 (explanation pipeline step + section) — **parallel**
+- `insights-cards-agent` → Milestone 9.3 (importance field on the insights schema, filter/sort card rework
+  per the Filterable Card List Checklist) — **parallel**
+- `questions-cards-agent` → Milestone 9.4 (importance field on questions, filter/sort card rework) —
+  **parallel**
+
+  All four consume Phase 8's pipeline output but not each other's — independent destinations, independent
+  files (`src/components/dashboard/`, `src/components/explanation/`, existing insights/questions component
+  dirs). `insights-cards-agent` and `questions-cards-agent` should apply the exact same Filterable Card List
+  Checklist so the two sections feel consistent, but that's a shared checklist reference, not shared state.
+  Verify each against the fixture dataset's pipeline output: Dashboard filters affect every widget
+  simultaneously; Explanation reads as prose, not a data dump; both card sections filter by tag and sort by
+  importance correctly.
+
+**Checkpoint:** None required beyond Phase 8's — display-layer work over already-verified pipeline output,
+mechanically checkable.
+
+### Phase 10 — Data Views Rework
+**Mode:** mixed — parallel migrations, sequential audit-trail work
+**Agents:**
+- `overview-migration-agent` → Milestone 10.1 (migrate `DataOverviewCard`/`ColumnDetailView`) — **parallel**
+- `dictionary-migration-agent` → Milestone 10.2 (migrate Data Dictionary panel) — **parallel**
+
+  These two are pure relocations of already-correct Phase 5 components into the new shell — independent
+  files, no shared state, safe to parallelize. Verified by: pixel/behavior parity with the Phase 5 originals,
+  now reachable via the new sidebar.
+
+- `audit-trail-agent` → Milestone 10.3 (new transformation-audit-log core logic in
+  `src/lib/analysis/`/`src/lib/parsers/`, migrated `DataQualitySummaryCard`, new "how issues were managed"
+  section) → **sequential, own batch** — this is new core logic (not a migration) touching the same analysis
+  modules Phase 2/3 built, so it runs alone to avoid conflicting edits with anything else touching those files
+  this phase. Verified against the fixture dataset's known planted issues (3 duplicates, 2 outliers, 1 future
+  date, mixed date formats) — each planted issue's fix should produce a corresponding audit-log entry.
+- `datasets-comparison-agent` → Milestone 10.4 (side-by-side raw/cleaned view, full downloads) →
+  **parallel with `audit-trail-agent`** — reads from Milestone 6.1's persisted record, doesn't touch the
+  analysis engine. Verified by: first 50 rows match on both sides for unchanged columns and differ exactly
+  where Phase 2/3 transformations apply; both downloads produce complete (non-truncated) CSVs.
+
+**Checkpoint:** None required — migrations are mechanically verifiable against Phase 5's existing behavior,
+and the audit-trail addition checks against the same known fixture-dataset issues used since Phase 2.
+
+### Phase 11 — PDF Report & Final Polish
+**Mode:** sequential
+**Agents:**
+- `pdf-report-agent` → Milestone 11.1 (jsPDF + html2canvas integration, full report generator, sidebar button
+  wiring) → verified by: "Download PDF Report" produces a multi-page PDF covering Dashboard/Explanation/
+  Insights/Questions/Quality for the fixture dataset, opened and visually checked, not just checked for file
+  existence.
+- `final-polish-agent` → Milestone 11.2 (responsive/keyboard/cross-browser re-verification across the entire
+  new shell) → **after** `pdf-report-agent`, so polish covers the finished PDF button too, not a stub.
+  Verified by: manual pass at <640px/640-1024px/>1024px including the History panel and collapsed sidebar,
+  Tab/Shift+Tab/Enter reaching every new interactive control, and a pass on latest Chrome/Firefox/Safari/Edge.
+
+**Checkpoint: Yes — mandatory, end of this batch.** Same pattern as the MVP's Phase 5 checkpoint: run a full
+`code-review` pass across the diff before considering Phases 6-11 closed.
+
+## Notes for execution — Phases 6-11
+
+- **No new credentials needed.** This batch adds no new external services — Recharts, jsPDF, html2canvas, and
+  `idb` are all client-side libraries with no API keys.
+- **Shared setup:** Phase 6's `storage-layer-agent` must fully complete before any later agent starts — Phase
+  7's shell, Phase 8's pipeline resume logic, and Phase 10's comparison view all read/write through it.
+- **Highest-risk phase:** Phase 8 — the chained-context pipeline is the actual behavioral core of
+  beyond-MVP.md and the most expensive to get wrong (live LLM calls, prompt-chaining correctness). Budget
+  real review time at its checkpoint rather than treating it as routine.
+- **Verification data:** reuse the same fixture dataset established in Phase 1/2 (duplicates, outliers,
+  missing values, mixed types, future date, mixed date formats, non-UTF-8 file, multi-sheet XLSX, SQL dump)
+  for every phase's verification in this batch too — no new fixture needed.
+- **`update-repo`** should still run at the end of every phase in this batch (6 through 11), and after any
+  milestone within them that turns out unusually difficult or delicate, per the existing project convention.
+
 ## Sign-off
 
 Per the skill's Step 5, live agent dispatch (Step 6) does not start until this plan is reviewed and confirmed.
-No build-oriented subagents have been dispatched yet.
+Phases 1-5 above were dispatched and completed in an earlier session. **Phases 6-11 (the beyond-MVP batch) are
+planned but not yet dispatched** — awaiting the user's go-ahead before `storage-layer-agent` (Phase 6,
+Milestone 6.1) is launched.

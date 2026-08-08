@@ -3,6 +3,8 @@
 ## Purpose
 This roadmap delivers a local React/Tailwind web application that enables consultants to upload client datasets (CSV, TSV, XLS, XLSX, SQL) and receive an immediate, honest assessment: data structure, quality issues, a data dictionary, business KPIs, insights, recommendations, and strategic client questions. The app runs entirely in-browser with no backend, no authentication, and no deployment — prioritizing a small, finished product over an ambitious, half-working one. It is sequenced to deliver visible value early (file upload and basic analysis first) while building toward the full LLM-powered insights.
 
+Phases 1-5 delivered the MVP against `docs/project-description.md` and are complete. Phases 6-11 extend the MVP per `docs/beyond-MVP.md`, a second spec addressing live MVP-testing feedback: the interface was comprehensive at a data-analysis level but not easy to use for non-technical, non-data-educated users. This batch reworks the app into a persistent, dashboard-style tool — local multi-dataset history, an automatic (not manual-trigger) LLM analysis pipeline, a top-bar/sidebar/viewport shell, business-facing dashboard/explanation views, and a real PDF report — while preserving every no-backend/no-auth/no-database constraint from the original spec.
+
 ## Domains covered
 - Scope/requirements — keep features focused, exclude auth/backend/database
 - Data/architecture — multi-format parsing, Arquero processing pipeline
@@ -11,6 +13,8 @@ This roadmap delivers a local React/Tailwind web application that enables consul
 - Integration — LLM provider setup, prompt engineering, API calls
 - Quality/validation — error handling, data validation, testing with sample datasets
 - Delivery/packaging — local React app, browser-compatible, no installation
+- **Data persistence — client-side IndexedDB storage, multi-dataset history, reload durability (Phase 6+)**
+- **Data visualization — dashboard charts, filterable/sortable card UIs (Phase 6+)**
 
 ## Roadmap
 
@@ -147,8 +151,137 @@ This roadmap delivers a local React/Tailwind web application that enables consul
 
 ---
 
-### Phase 6 — Refining Interface & Usage After MVP Testing
-**Status:** Not yet planned. Named here as a placeholder next step, per live MVP testing — the current interface is comprehensive at a data-analysis level but not yet easy to use for non-technical, non-data-educated users. Milestones and tasks to be added once the specific usability changes are defined.
+### Phase 6 — Persistent Storage & Multi-Dataset History
+**Source:** `docs/beyond-MVP.md` — "All the information remains stored in localstorage... The 'Upload a dataset' modal will only pop up if there's no dataset in the history" and the History sidebar spec.
+**Purpose:** Build the local persistence layer everything else in Phase 6+ depends on — without it, there's nothing to route to on reload, nothing for a History sidebar to list, and no "cleaned vs raw" pair to compare later. Comes first because every later phase in this batch either writes to or reads from it.
+**Definition of done:** A user can upload a dataset, close the tab, reopen the app, and see the same dataset/analysis/LLM output without any new network calls; multiple datasets can be stored, listed, switched between, and deleted.
+
+#### Milestone 6.1 — IndexedDB data layer
+- [ ] **Task:** Design the persisted-dataset record shape — *why:* every later phase (history list, dashboard, data views, PDF export) reads from one consistent shape, so it must be defined before anything is built on top of it — *done when:* a documented TypeScript type covers: id, file name, upload timestamp, raw parsed table, cleaned/normalized Arquero table, full Phase 3 analysis result, and the LLM outputs (data dictionary, business insights/KPIs, explanation, questions) each with a status (`pending|running|done|error`) so the automated pipeline in Phase 8 can resume mid-sequence
+- [ ] **Task:** Implement the IndexedDB wrapper (`src/lib/storage/`) — *why:* IndexedDB's native API is callback-heavy; a thin wrapper (e.g. using the `idb` npm package) keeps call sites simple — *done when:* `createDataset`, `getDataset`, `listDatasets`, `updateDataset`, `deleteDataset` exist, are promise-based, and round-trip a full record (including the Arquero tables, serialized) without data loss, verified by a save-then-reload test using the fixture dataset from Phase 2
+- [ ] **Task:** Add a storage-quota guard — *why:* IndexedDB quotas are large but not unlimited, and the app must fail predictably rather than silently corrupt state — *done when:* a `navigator.storage.estimate()` check runs before each save; on likely-insufficient space, the user sees a clear message rather than a silent failure or a half-written record
+
+#### Milestone 6.2 — History sidebar & empty-state flow
+- [ ] **Task:** Build the right-side History panel — *why:* per beyond-MVP.md, the History button (top bar, clock+counter-clockwise-arrow icon) rolls in a sidebar listing every stored dataset — *done when:* clicking History slides in a panel listing all datasets from `listDatasets()` (name, upload date), each with a Delete button, plus a "New dataset" button at the top
+- [ ] **Task:** Wire dataset switching — *why:* the consultant needs to move between previously analyzed client datasets without re-uploading — *done when:* clicking a history entry loads that record's data into the current view without any parsing/LLM calls (data comes straight from IndexedDB)
+- [ ] **Task:** Implement delete + auto-collapse-to-empty-state — *why:* explicit behavior from the spec: "If every dataset is deleted, the sidebar will collapse automatically and the 'Upload a dataset' modal will pop up" — *done when:* deleting the last remaining dataset closes the History panel and immediately shows the upload modal
+- [ ] **Task:** Implement the upload modal's conditional display — *why:* per the spec, the modal "will only pop up if there's no dataset in the history" — *done when:* on app load, if `listDatasets()` returns any record, the most recently used one loads automatically and no modal appears; if empty, the upload modal appears immediately
+
+**Checkpoint:** None — this phase is self-contained and mechanically verifiable (save, reload, list, delete).
+
+---
+
+### Phase 7 — Application Shell Redesign
+**Source:** `docs/beyond-MVP.md` — the top bar / left bar / center viewport layout description.
+**Purpose:** Replace the current single-column tabbed layout with the dashboard-style shell (top bar + left sidebar + center viewport) beyond-MVP.md calls for, so later phases have somewhere to mount their content. Comes after Phase 6 because the top bar's History button and the sidebar's dataset-dependent state need a working persistence layer to be meaningful, not stubbed.
+**Definition of done:** The app renders the new shell (top bar, collapsible left sidebar, center viewport) on both desktop and mobile, with navigation working end-to-end even before Phase 8-10 populate the destination sections with final content.
+
+#### Milestone 7.1 — Top bar
+- [ ] **Task:** Build the top bar shell — *why:* fixed reference point across every view — *done when:* renders logo+title on desktop (logo only on mobile, per spec) in the left corner, a KPI-card region (populated for real in Phase 8/9), and a History button (clock, counter-clockwise-arrow icon) in the right corner
+- [ ] **Task:** Make the History button conditionally visible — *why:* per the user path, "the History button on the right side of the top bar becomes visible" only once processing completes — *done when:* the button is hidden while no dataset is loaded or the pipeline is still running, and appears once a dataset's pipeline reaches a displayable state
+- [ ] **Task:** Add an unread/count badge to the History button — *why:* spec calls it a "clock with counter-clockwise arrow" and the panel it opens is a *history* of datasets — *done when:* the button shows the current count of stored datasets
+
+#### Milestone 7.2 — Left sidebar navigation
+- [ ] **Task:** Build the two-section left sidebar — *why:* the spec's core navigation structure — *done when:* renders a "Business information" group (Dashboard, Explanation, Business Insights, Questions) and a "Data" group (Overview, Data Dictionary, Quality, Datasets), each item routing to its section
+- [ ] **Task:** Implement mobile collapsibility — *why:* explicit spec requirement — *done when:* below the 640px breakpoint the sidebar collapses behind a toggle and doesn't obstruct the center viewport by default
+- [ ] **Task:** Add the sidebar footer action buttons (structural only) — *why:* per the user path, "Download PDF Report" and "Upload new dataset" appear at the bottom of the left bar once processing completes — *done when:* both buttons render conditionally (hidden until a dataset finishes processing) and are wired to stub handlers (real behavior lands in Phase 11 and Milestone 6.2's upload flow respectively)
+
+#### Milestone 7.3 — Center viewport routing
+- [ ] **Task:** Implement client-side section routing — *why:* clicking a sidebar item must show that section in the center viewport without a page reload — *done when:* each of the 8 sidebar destinations renders a (possibly placeholder, pre-Phase-8/9/10) section in the center viewport, and the active sidebar item is visually highlighted
+- [ ] **Task:** Migrate the loading overlay to the new shell — *why:* the existing per-panel loading states (Phase 4/5) don't fit the new "one full-screen overlay while the whole pipeline runs" model from the user path — *done when:* a full-viewport overlay with a spinner exists and can display an arbitrary status line, wired for real content in Phase 8
+
+**Checkpoint: Yes — first user-visible layout change.** This replaces the entire navigation model Phase 5 built; cheap to correct now, before Phase 8-10 wire real content into it.
+
+---
+
+### Phase 8 — Automated Sequential LLM Pipeline & Loading Experience
+**Source:** `docs/beyond-MVP.md` — "The LLMs queries will run all automatically upon file uploading, one after the other, each one of them receiving feedback from the previous 'analysis' step" and the loading-overlay status-line behavior.
+**Purpose:** Replace Phase 4's manual "Generate" buttons with an automatic, chained sequence so each LLM call has the richest possible context from the calls before it — this is the behavioral core of beyond-MVP.md's UX intent, not a cosmetic change.
+**Definition of done:** Uploading a file triggers ETL/EDA (already-built Phase 2/3 pipeline) followed automatically by data dictionary → business insights/KPIs → explanation → client questions, each step's output available as input context to the next, with the loading overlay's status line reflecting the current step, and no manual trigger buttons remaining.
+
+#### Milestone 8.1 — Chained context pipeline
+- [ ] **Task:** Define the pipeline's step sequence and context contract — *why:* each step needs to know exactly what upstream output it receives — *done when:* a documented, ordered list of steps (parse → analyze → data dictionary → business insights/KPIs → explanation → client questions) exists, with each step's function signature explicitly accepting the accumulated context object from prior steps
+- [ ] **Task:** Implement the pipeline runner (`src/lib/pipeline/`) — *why:* centralizes what today is scattered per-panel trigger logic — *done when:* a single function runs all steps in order against a freshly parsed file, persisting each step's result to IndexedDB (Milestone 6.1) as it completes (so a mid-pipeline reload can resume rather than restart), and stopping cleanly with a per-step error state if one step fails without blocking the ones already completed
+- [ ] **Task:** Feed prior-step output into each subsequent LLM prompt — *why:* this is the actual point of automatic chaining per the spec ("each one of them receiving feedback from the previous... step") — *done when:* the business-insights prompt includes the generated data dictionary as context, the explanation prompt includes both, and the client-questions prompt includes all three — verified by inspecting the actual prompt payloads sent for the fixture dataset
+- [ ] **Task:** Remove the manual "Generate"/"Regenerate" trigger buttons — *why:* superseded by automatic chaining; keeping both would be contradictory UX — *done when:* `BusinessInsightsPanel` and `ClientQuestionsPanel`'s manual-trigger code (added in Phase 4/5) is removed, and their content now renders directly from the pipeline-populated record; a single "Re-run analysis" affordance (not per-section) covers the retry case instead
+
+#### Milestone 8.2 — Loading overlay content
+- [ ] **Task:** Implement stage-by-stage status text — *why:* explicit user-path requirement — the spinner "spins while the system processes the dataset, the text line reflects the current status" — *done when:* the overlay (built structurally in Milestone 7.3) shows one of: "Understanding data...", "Cleaning data...", "Generating KPIs...", "Explaining business insights...", "Preparing client questions..." mapped to the pipeline's actual current step, not a fixed timer
+- [ ] **Task:** Lock interaction during processing — *why:* per the spec, "everything locks under a loading overlay" — *done when:* the shell (sidebar, top bar KPI cards, viewport) is non-interactive and visually indicates the lock while the pipeline runs for the active dataset
+
+#### Milestone 8.3 — Business-significant KPI cards
+- [ ] **Task:** Distinguish business KPIs from data-profile stats — *why:* explicit spec correction — the top-bar cards are "not about the data itself but the information this data conveys about the business" (contrast with Phase 5's data-stat-focused overview card) — *done when:* the business-insights prompt (Milestone 8.1) explicitly separates "business KPIs" (e.g. estimated revenue concentration, customer segment split) from data-quality stats, using the existing KPI `InsightGroup` bounds (2-5 items) from `schema.ts`
+- [ ] **Task:** Render KPI cards in the top bar — *why:* completes Milestone 7.1's stub region — *done when:* the top bar shows 2-5 compact KPI cards populated from the pipeline's business-insights output once the pipeline finishes, updating when the user switches datasets via History
+
+**Checkpoint: Yes — mandatory, same reason as MVP Phase 4.** Live LLM calls, prompt-chaining behavior, and removal of the manual-trigger UX all need a real look before Phase 9/10 build views on top of this output.
+
+---
+
+### Phase 9 — Business-Facing Views
+**Source:** `docs/beyond-MVP.md` — Dashboard, Explanation, Business Insights, and Questions section specs under "Business information."
+**Purpose:** Build the four left-sidebar destinations aimed at the non-technical reader — this is the phase that most directly answers the original usability gap ("not yet easy to use for non-technical, non-data-educated users") that motivated this whole batch of work.
+**Definition of done:** All four Business Information sections render real, pipeline-sourced content (no placeholders), with the Dashboard's filters affecting every piece of information shown in it, and Business Insights/Questions independently filterable by tag and sortable by importance.
+
+#### Milestone 9.1 — Dashboard
+- [ ] **Task:** Select and integrate Recharts — *why:* no charting library exists yet; needed for the interactive graphs the spec calls for — *done when:* `recharts` is added as a dependency and a first chart renders real data from the fixture dataset
+- [ ] **Task:** Build the Dashboard layout — *why:* the spec's central business-facing view — *done when:* renders KPIs, notices (e.g. data-quality flags surfaced in business language), quick insights, and at least 2 chart types (e.g. a trend line and a category breakdown) sourced from the pipeline's business-insights output plus the underlying cleaned dataset
+- [ ] **Task:** Implement dashboard-wide filters — *why:* explicit requirement — "filters which affect every piece of information shown in it" — *done when:* at least one filter control (e.g. a date-range or category filter, chosen based on what the fixture dataset supports) changes the KPIs, notices, insights, and every chart simultaneously, not just one widget
+
+#### Milestone 9.2 — Explanation
+- [ ] **Task:** Build the explanation prompt and section — *why:* spec calls for "a simple yet comprehensive explanation... business model, business health status, what's good, and the most important points to consider" — *done when:* the pipeline (Milestone 8.1) generates this narrative text as its own step, and the Explanation section renders it in plain, jargon-free prose, not a bulleted data dump
+
+#### Milestone 9.3 — Business Insights rework
+- [ ] **Task:** Add importance to the shared insight schema — *why:* the current `InsightItem` schema (`priority?`) needs a concrete, consistently-populated importance field for this section's sort — *done when:* `schema.ts`'s business-insights `InsightGroup` items reliably populate `priority` (e.g. high/medium/low) rather than leaving it optional/unused
+- [ ] **Task:** Rebuild the Business Insights section as filter/sort cards — *why:* explicit UI requirement — "filter them by tags or importance, and sort them by importance" — *done when:* each insight renders as a card (title, description, importance, tags), with working tag-filter controls and an importance sort toggle; apply the "Filterable Card List Checklist" below
+
+#### Milestone 9.4 — Questions rework
+- [ ] **Task:** Add importance to client questions — *why:* mirrors the insights change; questions currently only carry topic tags — *done when:* the client-questions `InsightGroup` items carry a populated importance/priority field
+- [ ] **Task:** Rebuild the Questions section as filter/sort cards — *why:* same requirement pattern as Business Insights — *done when:* renders per the "Filterable Card List Checklist," with tag and importance filter/sort matching Milestone 9.3's UX so the two sections feel consistent
+
+**Checkpoint:** None required beyond the Phase 8 checkpoint already covering pipeline output — these are display-layer tasks over already-verified data, mechanically checkable against the fixture dataset.
+
+---
+
+### Phase 10 — Data Views Rework
+**Source:** `docs/beyond-MVP.md` — Overview, Data Dictionary, Quality, and Datasets section specs under "Data."
+**Purpose:** Migrate and extend Phase 5's existing data-analysis components into the new sidebar structure, and add the one genuinely new capability this section requires: an audit trail explaining *why* the system changed anything in the raw data, so a data analyst reviewing the app can trust it.
+**Definition of done:** All four Data sections render under the new shell; Quality includes a real audit trail of every automated modification; Datasets shows a working raw-vs-cleaned comparison with both downloadable.
+
+#### Milestone 10.1 — Overview migration
+- [ ] **Task:** Migrate `DataOverviewCard`/`ColumnDetailView` into the Data → Overview destination — *why:* this content already exists and is correct (Phase 5); it only needs to move into the new navigation shell — *done when:* Overview renders identically to its Phase 5 behavior, reachable via the new left sidebar instead of the old tab bar
+
+#### Milestone 10.2 — Data Dictionary migration
+- [ ] **Task:** Migrate the Data Dictionary panel into the Data → Data Dictionary destination — *why:* existing, correct content (Phase 4/5), now auto-populated by the Phase 8 pipeline instead of its old standalone auto-effect — *done when:* renders the pipeline's data-dictionary output under the new navigation, with the tag-based filtering it already has intact
+
+#### Milestone 10.3 — Quality + audit trail
+- [ ] **Task:** Add a transformation audit log to the analysis engine — *why:* new core-logic requirement — the spec wants a data analyst to "understand the reason behind every modification to the raw dataset," which nothing in Phase 2/3 currently records — *done when:* `src/lib/analysis/` and `src/lib/parsers/` emit a structured log entry (what changed, why, how many rows affected) for each automated modification already being made silently today (e.g. date normalization to YYYY-MM-DD, encoding fallback, any value coercion), collected into the persisted record from Milestone 6.1
+- [ ] **Task:** Migrate `DataQualitySummaryCard` into Data → Quality — *why:* existing content, new location — *done when:* renders identically to Phase 5 behavior under the new shell
+- [ ] **Task:** Build the "how issues were managed" explanatory section — *why:* the new half of this destination, per the spec — *done when:* renders the audit log from the task above in plain language grouped by transformation type, with affected-row counts, positioned alongside the existing quality summary
+
+#### Milestone 10.4 — Datasets (raw vs. cleaned comparison)
+- [ ] **Task:** Build the side-by-side comparison view — *why:* explicit spec requirement so a reviewer can see exactly what changed — *done when:* renders the first 50 rows of the raw parsed table and the first 50 rows of the cleaned/normalized Arquero table side by side, both sourced from the Milestone 6.1 persisted record
+- [ ] **Task:** Add full-dataset downloads for both versions — *why:* spec: "they're both fully downloadable from here" — *done when:* two download buttons produce a complete (not 50-row-limited) CSV of the raw and cleaned datasets respectively
+
+**Checkpoint:** None required — migrations are mechanically verifiable against Phase 5's existing behavior, and the audit-trail addition is checkable against the fixture dataset's known planted issues (same fixture used since Phase 2).
+
+---
+
+### Phase 11 — PDF Report & Final Polish
+**Source:** `docs/beyond-MVP.md` — the "Download PDF Report" button in the user path; general cross-cutting fit-and-finish for the new architecture.
+**Purpose:** Close out this batch of work: deliver the one concretely new deliverable (a real PDF, not the MVP's Markdown-only download) and re-verify the polish guarantees Phase 5 already established still hold across the entirely new shell/navigation/persistence model.
+**Definition of done:** The left sidebar's "Download PDF Report" button produces a complete, real PDF covering every generated section; the app re-passes the same responsive/keyboard/cross-browser bar Phase 5 set, now against the new shell.
+
+#### Milestone 11.1 — PDF report generation
+- [ ] **Task:** Integrate jsPDF + html2canvas — *why:* chosen client-side, no-backend approach for real PDF output (vs. Phase 5's Markdown-only download) — *done when:* both are added as dependencies and a minimal proof renders one section of the app to a downloadable PDF page
+- [ ] **Task:** Build the full report generator — *why:* the deliverable itself — *done when:* clicking "Download PDF Report" produces a multi-page PDF covering Dashboard KPIs/charts, Explanation, Business Insights, Questions, and the Data Quality summary, in a client-presentable layout (not a raw screenshot dump)
+- [ ] **Task:** Wire the sidebar footer button for real — *why:* completes Milestone 7.2's stub — *done when:* the "Download PDF Report" button (visible once the pipeline completes, per the user path) triggers the generator above
+
+#### Milestone 11.2 — Cross-cutting re-verification
+- [ ] **Task:** Re-verify responsive breakpoints — *why:* the entire layout model changed (tab bar → top bar + sidebar + viewport); Phase 5's pass no longer covers it — *done when:* the new shell (including collapsible sidebar and History panel) is confirmed usable at <640px, 640-1024px, and >1024px
+- [ ] **Task:** Re-verify keyboard navigation — *why:* same reasoning — new interactive elements (History panel, sidebar nav, dashboard filters, card sort/filter controls) didn't exist during Phase 5's pass — *done when:* Tab/Shift+Tab/Enter reach every new interactive element in a sensible order
+- [ ] **Task:** Re-verify cross-browser compatibility — *why:* same reasoning, per the resolved browser-support decision — *done when:* the rebuilt app is manually confirmed working on latest Chrome, Firefox, Safari, and Edge
+
+**Checkpoint: Yes — mandatory, end of this roadmap batch.** Same pattern as the MVP's Phase 5 checkpoint: run a full code-review pass across the diff before considering this batch closed.
 
 ---
 
@@ -193,6 +326,16 @@ Apply this to each file format parser.
 - [ ] Add file size check before parsing (warn if >15MB)
 - [ ] Implement timeout for parsing operations
 
+### Filterable Card List Checklist
+Apply this to each card-based list that needs tag filtering and importance sorting (Business Insights, Questions — Phase 9).
+- [ ] Render each item as a card: title, description, importance indicator, tag chips
+- [ ] Derive the available tag-filter options from the actual items present (no hardcoded tag list)
+- [ ] Implement multi-select tag filtering (AND or OR — pick one and keep it consistent across sections)
+- [ ] Implement importance sort (high → low), stable for ties
+- [ ] Show an empty state when a filter combination matches nothing
+- [ ] Keep filter/sort state per-section, not shared globally
+- [ ] Add keyboard access to filter/sort controls
+
 ### Data Quality Check Checklist
 Apply this to each quality check function.
 - [ ] Define what the check detects (missing, duplicates, outliers, etc.)
@@ -227,3 +370,6 @@ Apply this to each quality check function.
 - **Error recovery:** When a file fails to parse, should the app offer to attempt partial parsing, or only show the error? Show the error and, if detected, the cause.
 - **Privacy considerations:** Client data stays entirely in the browser (good for privacy), but should there be explicit messaging about this? No need.
 - **Browser compatibility:** Which browsers should be officially supported? latest Chrome, Firefox, Safari, Edge.
+- **Local persistence mechanism (Phase 6, resolved):** `docs/beyond-MVP.md` says "localStorage," but datasets can be up to 15MB, exceeding literal localStorage's practical quota. Resolved: IndexedDB is used as the actual storage mechanism (still 100% client-side, no backend) — "localStorage" in the spec is treated as shorthand for "persists locally," not the literal Web Storage API.
+- **Charting library (Phase 9, resolved):** No charting library existed pre-Phase 6. Resolved: Recharts.
+- **PDF export approach (Phase 11, resolved):** MVP deferred PDF entirely (Markdown only). Resolved: jsPDF + html2canvas, client-side, no backend.
