@@ -23,6 +23,7 @@ dist/
 *.swp
 *.swo
 *~
+lakeside-keyrus.code-workspace
 
 # OS
 .DS_Store

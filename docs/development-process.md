@@ -19,20 +19,20 @@ This roadmap delivers a local React/Tailwind web application that enables consul
 **Definition of done:** A responsive React app with drag-and-drop file upload that accepts CSV, TSV, XLS, XLSX, SQL files.
 
 #### Milestone 1.1 — Initialize project
-- [ ] **Task:** Create React app with Vite and Tailwind — *why:* Foundation for the entire application — *done when:* `npm run dev` starts a working React app with Tailwind CSS applied globally
-- [ ] **Task:** Set up project folder structure — *why:* Organizes code for maintainability and future growth — *done when:* Directories exist: `src/components`, `src/hooks`, `src/utils`, `src/lib`, `src/types`
-- [ ] **Task:** Configure ESLint and Prettier — *why:* Ensures consistent code quality and formatting — *done when:* Code formatting runs on save without errors, linting passes
-- [ ] **Task:** Initialize Git repository — *why:* Enables version control from the start — *done when:* `git status` shows tracked files, initial commit exists
+- [X] **Task:** Create React app with Vite and Tailwind — *why:* Foundation for the entire application — *done when:* `npm run dev` starts a working React app with Tailwind CSS applied globally
+- [X] **Task:** Set up project folder structure — *why:* Organizes code for maintainability and future growth — *done when:* Directories exist: `src/components`, `src/hooks`, `src/utils`, `src/lib`, `src/types`
+- [X] **Task:** Configure ESLint and Prettier — *why:* Ensures consistent code quality and formatting — *done when:* Code formatting runs on save without errors, linting passes
+- [X] **Task:** Initialize Git repository — *why:* Enables version control from the start — *done when:* `git status` shows tracked files, initial commit exists
 
 #### Milestone 1.2 — Create upload UI
-- [ ] **Task:** Build responsive shell layout — *why:* Provides visual container for all UI elements — *done when:* App has header with title, main content area, and footer that render correctly on mobile (≥320px) and desktop (≥1200px)
-- [ ] **Task:** Create file upload component with drag-and-drop — *why:* Primary user interaction mechanism — *done when:* Users can drag files onto a clearly marked zone OR click to select, with visual feedback (border highlight, file name preview)
-- [ ] **Task:** Add file type validation — *why:* Prevents processing of unsupported formats — *done when:* Only files with extensions .csv, .tsv, .xls, .xlsx, .sql are accepted; others show a clear error message
-- [ ] **Task:** Display upload status — *why:* Informs user of progress — *done when:* Shows "Ready to upload", "Processing...", "Upload complete", or "Error: [message]" states
+- [X] **Task:** Build responsive shell layout — *why:* Provides visual container for all UI elements — *done when:* App has header with title, main content area, and footer that render correctly on mobile (≥320px) and desktop (≥1200px)
+- [X] **Task:** Create file upload component with drag-and-drop — *why:* Primary user interaction mechanism — *done when:* Users can drag files onto a clearly marked zone OR click to select, with visual feedback (border highlight, file name preview)
+- [X] **Task:** Add file type validation — *why:* Prevents processing of unsupported formats — *done when:* Only files with extensions .csv, .tsv, .xls, .xlsx, .sql are accepted; others show a clear error message
+- [X] **Task:** Display upload status — *why:* Informs user of progress — *done when:* Shows "Ready to upload", "Processing...", "Upload complete", or "Error: [message]" states
 
 #### Milestone 1.3 — Add basic data display
-- [ ] **Task:** Create raw data preview component — *why:* Immediate feedback that upload worked — *done when:* First 100 rows of uploaded data display in a scrollable table
-- [ ] **Task:** Add dataset summary bar — *why:* Quick overview of what was loaded — *done when:* Shows row count, column count, and file name at top of results
+- [X] **Task:** Create raw data preview component — *why:* Immediate feedback that upload worked — *done when:* First 100 rows of uploaded data display in a scrollable table
+- [X] **Task:** Add dataset summary bar — *why:* Quick overview of what was loaded — *done when:* Shows row count, column count, and file name at top of results
 
 ---
 
@@ -212,7 +212,7 @@ Apply this to each quality check function.
 ---
 
 ## Open questions
-- **LLM provider choice:** The system will use DeepSeek's API for data analysis tasks, and Google AI Studio API for report text generation (generous free-tier models like gemini-3.5-flash-lite and gemini-3.6-flash as fallback model).
+- **LLM provider choice:** The system will use DeepSeek's API for data analysis tasks, and Google AI Studio API for report text generation (generous free-tier models like gemini-3.5-flash-lite or gemini-3.6-flash as fallback model).
 - **API key setup:** Due to the no-backend policy, the consultant won't be able to set up the API keys from the UI, so the system will be using a .env file for environmental secrets. There will be a .env.example file for GitHub repository.
 - **LLM cost handling:** Only show warnings if token-consumption related warning are disclosed by the API responses.
 - **Large file handling:** What should the hard limit be for file size? Up to 15Mb.

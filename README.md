@@ -45,3 +45,6 @@ Full task-level detail lives in [docs/development-process.md](docs/development-p
 ## License
 
 CC-BY-4.0
+
+**Developed by:** Daniel Peraza
+**Co-Authors:** Mistral Vibe & Claude Code

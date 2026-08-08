@@ -1,0 +1,12 @@
+node_modules
+dist
+build
+coverage
+*.log
+package-lock.json
+
+# Pre-existing planning docs, out of scope for app-code formatting
+docs/
+.vibe/
+NOTES.md
+README.md
