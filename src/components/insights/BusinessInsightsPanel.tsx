@@ -1,61 +1,38 @@
-import { useEffect, useMemo, useState } from 'react'
-import * as aq from 'arquero'
-import { useLlmRequest } from '../../hooks/useLlmRequest'
-import { buildAnalysisSummary } from '../../lib/llm/analysisSummary'
-import { generateBusinessInsights } from '../../lib/llm/businessInsights'
+import { useMemo, useState } from 'react'
+import type { LlmOutputSlot } from '../../types/persistedDataset'
+import { asBusinessInsights } from '../../types/persistedDataset'
 import type { BusinessInsightsResult } from '../../lib/llm/businessInsights'
 import type { InsightGroup, InsightItem } from '../../lib/llm/schema'
 import { SkeletonCardGrid, SkeletonList } from '../shared/Skeleton'
 import { CopyButton } from '../shared/CopyButton'
 
 interface BusinessInsightsPanelProps {
-  /** The Arquero table to analyze and generate business insights for. */
-  table: aq.ColumnTable
-  /** The originating file, used for file-size context in the analysis summary. */
-  file: File
   /**
-   * Notified whenever this panel's generated result changes, so
-   * `ResultsView` can include it in the Milestone 5.3 downloadable Markdown
-   * report without this panel needing to know anything about reports.
+   * This dataset's `llmOutputs.businessInsights` slot. Its `data`, when
+   * `status === 'done'`, is a 3-element `InsightGroup[]` positionally
+   * ordered `[kpis, insights, recommendations]` — the shape
+   * `src/lib/pipeline/runPipeline.ts` stores it in — reconstructed here back
+   * into the friendlier `BusinessInsightsResult` shape for rendering.
    */
-  onDataChange?: (data: BusinessInsightsResult | null) => void
+  slot: LlmOutputSlot
 }
 
 /**
- * Milestone 4.3 display component: generates and renders KPIs, insights,
- * and recommendations from the shared `InsightGroup` schema. KPIs render as
- * metric cards (pulling a numeric `value`/`unit` out of `metadata` when the
- * LLM provided one), insights and recommendations render as bulleted lists
- * under clear headings. A single tag-filter control spans all three groups
- * so filtering isn't reinvented per section.
+ * Milestone 4.3 display component; rewritten Phase 8, Milestone 8.1 into a
+ * pure display component. Renders KPIs, insights, and recommendations from
+ * the shared `InsightGroup` schema. KPIs render as metric cards (pulling a
+ * numeric `value`/`unit` out of `metadata` when the LLM provided one),
+ * insights and recommendations render as bulleted lists under clear
+ * headings. A single tag-filter control spans all three groups so filtering
+ * isn't reinvented per section.
+ *
+ * No longer owns any `useLlmRequest`/trigger logic — the pipeline generates
+ * this automatically; this component only ever renders `slot`.
  */
-export function BusinessInsightsPanel({
-  table,
-  file,
-  onDataChange,
-}: BusinessInsightsPanelProps) {
-  const { status, data, error, run } = useLlmRequest<BusinessInsightsResult>()
+export function BusinessInsightsPanel({ slot }: BusinessInsightsPanelProps) {
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
 
-  // Manual/on-demand trigger, deliberately — unlike the data dictionary
-  // (which explains the dataset's own structure and auto-generates),
-  // business insights and client questions only generate when the
-  // consultant asks, so casual uploads don't burn an LLM call automatically.
-  const handleGenerate = () => {
-    void run(async (signal) => {
-      const summary = buildAnalysisSummary(table, file)
-      return generateBusinessInsights(summary, { signal })
-    })
-  }
-
-  // Notify the parent (for the downloadable report) from the hook's own
-  // reactive `status`/`data` rather than a `run(...).then(...)` chain — see
-  // the identical note in `DataDictionaryPanel.tsx` for why: the promise
-  // `run` returns resolves to `null` for a superseded/aborted request too,
-  // which `status === 'success'` never does.
-  useEffect(() => {
-    if (status === 'success') onDataChange?.(data)
-  }, [status, data, onDataChange])
+  const data = useMemo(() => asBusinessInsights(slot), [slot])
 
   const allTags = useMemo(() => collectAllTags(data), [data])
   // Derived rather than synced via an effect: if the selected tag no longer
@@ -64,25 +41,7 @@ export function BusinessInsightsPanel({
   const effectiveSelectedTag =
     selectedTag && allTags.includes(selectedTag) ? selectedTag : null
 
-  if (status === 'idle') {
-    return (
-      <div className="flex flex-col gap-3">
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Generate KPIs, insights, and actionable recommendations for this
-          dataset.
-        </p>
-        <button
-          type="button"
-          onClick={handleGenerate}
-          className="self-start rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
-        >
-          Generate business insights
-        </button>
-      </div>
-    )
-  }
-
-  if (status === 'loading') {
+  if (slot.status === 'pending' || slot.status === 'running') {
     return (
       <div className="flex flex-col gap-4">
         <div
@@ -98,21 +57,19 @@ export function BusinessInsightsPanel({
     )
   }
 
-  if (status === 'error') {
+  if (slot.status === 'error') {
     return (
       <div
         role="alert"
-        className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-300"
+        className="flex flex-col gap-1 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-300"
       >
-        Couldn't generate business insights:{' '}
-        {error?.userMessage ?? 'Unknown error.'}
-        <button
-          type="button"
-          onClick={handleGenerate}
-          className="ml-3 font-medium underline underline-offset-2"
-        >
-          Retry
-        </button>
+        <span>
+          Couldn't generate business insights:{' '}
+          {slot.errorMessage ?? 'Unknown error.'}
+        </span>
+        <span className="text-xs text-red-700 dark:text-red-400">
+          Use "Re-run analysis" (in the sidebar) to try again.
+        </span>
       </div>
     )
   }
@@ -131,13 +88,6 @@ export function BusinessInsightsPanel({
         >
           Business insights
         </h2>
-        <button
-          type="button"
-          onClick={handleGenerate}
-          className="shrink-0 rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-        >
-          Regenerate
-        </button>
       </div>
 
       {allTags.length > 0 && (

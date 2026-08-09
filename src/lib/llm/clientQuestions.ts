@@ -34,12 +34,14 @@ import type { ColumnMetadata } from '../analysis/structural'
 import type { DataQualityReport, QualityCheckResult } from '../analysis/quality'
 import {
   buildSystemPrompt,
+  condenseInsightGroupForContext,
   formatDatasetContext,
   formatInsightGroupInstruction,
 } from './prompt'
 import { runStructuredInsightRequest } from './client'
 import { callGeminiRawText } from './gemini'
 import type { InsightGroup } from './schema'
+import type { BusinessInsightsResult } from './businessInsights'
 
 /** Topic tags the prompt asks the model to use, so the display component's filter chips have a known, stable vocabulary. */
 export const CLIENT_QUESTION_TOPICS = [
@@ -151,14 +153,30 @@ const TASK_INSTRUCTIONS = [
   'Cover a mix of topics rather than clustering on just one.',
 ].join('\n')
 
+export interface GenerateClientQuestionsOptions {
+  signal?: AbortSignal
+  /**
+   * Phase 8, Milestone 8.1's chained-pipeline context — the three
+   * already-generated upstream outputs, condensed and included so the
+   * questions this step proposes build on what's already been established
+   * rather than starting from the raw dataset alone. All optional, so this
+   * function still works standalone (e.g. a future non-pipeline caller).
+   */
+  dictionary?: InsightGroup
+  businessInsights?: BusinessInsightsResult
+  explanation?: InsightGroup
+}
+
 /**
  * Builds the user-message content for a client-questions request: dataset
- * context (columns, industry hints, quality concerns, structural gaps)
- * followed by the JSON-shape instruction for `type: 'question'`.
+ * context (columns, industry hints, quality concerns, structural gaps),
+ * the chained upstream context when available, followed by the JSON-shape
+ * instruction for `type: 'question'`.
  */
 function buildUserContent(
   columns: ColumnMetadata[],
   qualityReport: DataQualityReport,
+  options: GenerateClientQuestionsOptions,
 ): string {
   const industryHints = guessIndustryHints(columns)
   const qualityConcerns = summarizeQualityConcerns(qualityReport)
@@ -184,6 +202,27 @@ function buildUserContent(
       structuralGaps.length > 0
         ? structuralGaps
         : ['No entirely-empty columns detected.'],
+    ...(options.dictionary
+      ? { dataDictionary: condenseInsightGroupForContext(options.dictionary) }
+      : {}),
+    ...(options.businessInsights
+      ? {
+          kpis: condenseInsightGroupForContext(options.businessInsights.kpis),
+          businessInsightsFindings: condenseInsightGroupForContext(
+            options.businessInsights.insights,
+          ),
+          recommendations: condenseInsightGroupForContext(
+            options.businessInsights.recommendations,
+          ),
+        }
+      : {}),
+    ...(options.explanation
+      ? {
+          businessExplanation: condenseInsightGroupForContext(
+            options.explanation,
+          ),
+        }
+      : {}),
   })
 
   return [context, '', formatInsightGroupInstruction('question')].join('\n')
@@ -192,22 +231,23 @@ function buildUserContent(
 /**
  * Generates the client-questions `InsightGroup`: a schema-conformant,
  * runtime-validated set of 2+ strategic questions tagged by topic, grounded
- * in `columns` and `qualityReport`. Calls Google AI Studio (Gemini) via
+ * in `columns` and `qualityReport`, plus (Phase 8) whatever upstream
+ * pipeline context is available. Calls Google AI Studio (Gemini) via
  * `callGeminiRawText`, per the roadmap's Milestone 4.4 provider line.
  */
 export async function generateClientQuestions(
   columns: ColumnMetadata[],
   qualityReport: DataQualityReport,
-  signal?: AbortSignal,
+  options: GenerateClientQuestionsOptions = {},
 ): Promise<InsightGroup> {
   const systemPrompt = buildSystemPrompt(TASK_INSTRUCTIONS)
-  const userContent = buildUserContent(columns, qualityReport)
+  const userContent = buildUserContent(columns, qualityReport, options)
 
   return runStructuredInsightRequest({
     type: 'question',
     systemPrompt,
     userContent,
     callProvider: callGeminiRawText,
-    signal,
+    signal: options.signal,
   })
 }

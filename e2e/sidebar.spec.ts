@@ -11,6 +11,19 @@ import { fileURLToPath } from 'node:url'
  * active dataset, the always-reachable "Download report" button, and that
  * switching away from Data Dictionary and back doesn't re-trigger its
  * auto-generated LLM call.
+ *
+ * Phase 8, Milestone 8.1 update: Business Insights and Client Questions no
+ * longer show a manual "Generate" button/idle prompt — all four LLM steps
+ * now run automatically as one chained pipeline the moment a dataset goes
+ * active, so their anchor text below is the loading state's text (present
+ * the instant the section mounts, since the pipeline is already running by
+ * then) rather than a "Generate ..." button label.
+ *
+ * Phase 8, Milestone 8.2 update: the pipeline now runs behind a full-viewport
+ * loading overlay that locks the whole shell (sidebar included), so tests
+ * below wait for that overlay to disappear before clicking anything — by
+ * the time the shell is reachable again, all four steps (not just whichever
+ * one a given section shows) have already finished.
  */
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -25,7 +38,7 @@ const DATASET_A = path.resolve(__dirname, '../docs/lakeside_orders_sample.csv')
 const SECTION_CONTENT: Record<string, RegExp | string> = {
   Dashboard: 'coming in Phase 9',
   Explanation: 'coming in Phase 9',
-  'Business Insights': 'Generate business insights',
+  'Business Insights': /Generating business insights\.\.\.|Business insights/,
   Questions: 'Client Questions',
   Overview: 'Dataset overview',
   'Data Dictionary': 'Data dictionary',
@@ -36,6 +49,11 @@ const SECTION_CONTENT: Record<string, RegExp | string> = {
 test('sidebar sections show real content, mobile collapse, and gated footer actions', async ({
   page,
 }) => {
+  // Generous timeout: the pipeline (4 real LLM calls) must fully finish and
+  // the loading overlay disappear before this test can click into any
+  // section.
+  test.setTimeout(240_000)
+
   // Start from a clean slate: no stored datasets.
   await page.goto('/')
   await page.evaluate(() => indexedDB.deleteDatabase('keyrus-dataset-analyzer'))
@@ -54,6 +72,13 @@ test('sidebar sections show real content, mobile collapse, and gated footer acti
   await expect(
     page.getByRole('heading', { name: 'Dataset overview' }),
   ).toBeVisible({ timeout: 15_000 })
+
+  // The pipeline auto-starts right after upload and locks the shell under
+  // the full-viewport loading overlay (Phase 8, Milestone 8.2) until all
+  // four LLM steps finish — wait it out before clicking anything below.
+  await expect(page.getByRole('status', { name: 'Loading overlay' })).toBeHidden({
+    timeout: 200_000,
+  })
 
   const downloadPdfButton = page.getByRole('button', { name: 'Download PDF Report' })
   const uploadNewButton = page.getByRole('button', { name: 'Upload new dataset' })
@@ -123,8 +148,9 @@ test('sidebar sections show real content, mobile collapse, and gated footer acti
 test('Data Dictionary keeps its generated content across a section switch, without re-triggering generation', async ({
   page,
 }) => {
-  // Generous overall timeout: this test waits on a real Mistral API call.
-  test.setTimeout(120_000)
+  // Generous overall timeout: this test waits on the full pipeline (4 real
+  // LLM calls) to finish behind the loading overlay before it can navigate.
+  test.setTimeout(240_000)
 
   // Start from a clean slate: no stored datasets.
   await page.goto('/')
@@ -136,19 +162,20 @@ test('Data Dictionary keeps its generated content across a section switch, witho
     page.getByRole('heading', { name: 'Dataset overview' }),
   ).toBeVisible({ timeout: 15_000 })
 
-  // Navigate to Data Dictionary. `DataDictionaryPanel` auto-triggers
-  // generation on mount (Phase 4, Milestone 4.2) — it's mounted the instant
-  // a dataset goes active (Milestone 7.3's "keep the 5 real sections
-  // mounted at all times" requirement), so the LLM call is already
-  // in-flight by the time we click over to it.
+  // The pipeline (including Data Dictionary's real Mistral call) now runs
+  // behind the full-viewport loading overlay (Phase 8, Milestone 8.2),
+  // which locks the sidebar too — wait for it to finish before navigating
+  // anywhere.
+  await expect(page.getByRole('status', { name: 'Loading overlay' })).toBeHidden({
+    timeout: 200_000,
+  })
+
   await page.getByRole('button', { name: 'Data Dictionary', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Data dictionary' })).toBeVisible()
 
-  // Wait for the real Mistral call to finish (success or error — either way
-  // the "Generating insights..." status disappears).
-  await expect(page.getByText('Generating insights...')).toBeHidden({
-    timeout: 60_000,
-  })
+  // Generation already finished behind the overlay, so there's no spinner
+  // left to wait out here.
+  await expect(page.getByText('Generating insights...')).toHaveCount(0)
 
   // Snapshot whatever the panel ended up rendering (success cards, or an
   // error message) so we can prove it's byte-identical after the round trip

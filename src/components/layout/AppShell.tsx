@@ -3,15 +3,20 @@ import { TopBar } from './TopBar'
 import { Footer } from './Footer'
 import { Sidebar } from './Sidebar'
 import type { AppSection } from './sections'
+import type { PersistedDataset } from '../../types/persistedDataset'
 
 interface AppShellProps {
   children: ReactNode
   historyCount?: number
   onOpenHistory?: () => void
   hasActiveDataset?: boolean
+  /** The active dataset's persisted LLM outputs (`view.llmOutputs` when `view.kind === 'active'`), threaded down to `TopBar` so it can read the `businessInsights` slot's KPIs — Phase 8, Milestone 8.3. `undefined` when no dataset is active. */
+  llmOutputs?: PersistedDataset['llmOutputs']
   activeSection: AppSection
   onSelectSection: (section: AppSection) => void
   onStartNewDataset?: () => void
+  /** Wired to `Sidebar`'s "Re-run analysis" footer button — re-invokes the full LLM pipeline for the active dataset from scratch. */
+  onRerunAnalysis?: () => void
 }
 
 /**
@@ -41,9 +46,11 @@ export function AppShell({
   historyCount,
   onOpenHistory,
   hasActiveDataset,
+  llmOutputs,
   activeSection,
   onSelectSection,
   onStartNewDataset,
+  onRerunAnalysis,
 }: AppShellProps) {
   return (
     <div className="flex h-svh flex-col overflow-hidden bg-slate-100 dark:bg-slate-950">
@@ -51,6 +58,7 @@ export function AppShell({
         historyCount={historyCount}
         onOpenHistory={onOpenHistory}
         hasActiveDataset={hasActiveDataset}
+        llmOutputs={llmOutputs}
       />
       <div className="flex min-h-0 flex-1">
         <Sidebar
@@ -58,6 +66,7 @@ export function AppShell({
           onSelectSection={onSelectSection}
           hasActiveDataset={hasActiveDataset}
           onStartNewDataset={onStartNewDataset}
+          onRerunAnalysis={onRerunAnalysis}
         />
         <main className="min-w-0 flex-1 overflow-y-auto bg-white dark:bg-slate-900">
           <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">

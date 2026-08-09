@@ -1,15 +1,16 @@
-import { lazy, Suspense, useState, type ReactNode } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import type { AnalysisResult } from '../../types/upload'
-import type { PersistedDataset } from '../../types/persistedDataset'
+import type { LlmOutputSlot, PersistedDataset } from '../../types/persistedDataset'
+import { asSingleGroup, asBusinessInsights } from '../../types/persistedDataset'
 import { DataOverviewCard } from '../results/DataOverviewCard'
 import { DataQualitySummaryCard } from '../results/DataQualitySummaryCard'
 import { ColumnDetailView } from '../results/ColumnDetailView'
-import type { InsightGroup, InsightItem } from '../../lib/llm/schema'
-import type { BusinessInsightsResult } from '../../lib/llm/businessInsights'
+import type { InsightItem } from '../../lib/llm/schema'
 import {
   buildMarkdownReport,
   downloadMarkdown,
   reportFileName,
+  type ReportLlmContent,
 } from '../../lib/report/markdownReport'
 import { SkeletonCardGrid, SkeletonList } from '../shared/Skeleton'
 import type { AppSection } from './sections'
@@ -43,9 +44,14 @@ interface MainViewportProps {
   datasetId: string
   analysis: AnalysisResult
   file: File
-  /** The active dataset's persisted LLM outputs, so panels can seed from an already-generated result instead of regenerating. */
+  /** The active dataset's persisted LLM outputs — the pipeline (`useDatasetSession`, Phase 8) drives these; this component just passes each slot straight through to its display panel and reads from them for the downloadable report. */
   llmOutputs: PersistedDataset['llmOutputs']
-  onDictionaryGenerated: (data: InsightGroup) => void
+}
+
+/** Narrows the `clientQuestions` slot's `InsightGroup` down to the bare `InsightItem[]` `markdownReport.ts` expects. */
+function asQuestionItems(slot: LlmOutputSlot): InsightItem[] | null {
+  const group = asSingleGroup(slot)
+  return group ? group.items : null
 }
 
 interface KeptMountedProps {
@@ -99,25 +105,22 @@ function ComingSoonCard({ label, phase }: { label: string; phase: number }) {
  * Phase 9/10 sections (`dashboard`, `explanation`, `datasets`) hold no state
  * and can mount/unmount freely with plain conditional rendering.
  *
- * Also owns the lifted `dictionaryData`/`insightsData`/`questionsData` state
- * that used to live in `ResultsView` purely to feed the "Download report"
- * button — same panels, same `onDataChange` wiring, just hosted here instead
- * so the button stays reachable regardless of which section is active
- * (placed at the top of the viewport, always visible whenever a dataset is
- * active).
+ * The "Download report" button reads straight from the `llmOutputs` prop
+ * (Phase 8, Milestone 8.1 — previously this component lifted local
+ * `dictionaryData`/`insightsData`/`questionsData` state fed by each panel's
+ * `onDataChange` callback just for this; now that `llmOutputs` already
+ * carries everything generated for this dataset, that indirection is gone).
  *
  * `key={datasetId}` on the three LLM panels (bug fix, found in live Phase 7
  * testing): `KeptMounted` intentionally keeps them mounted across *section*
- * switches so generated content survives navigation, but without a key tied
- * to the dataset, that same "stay mounted" behavior applied across *dataset*
- * switches too — `BusinessInsightsPanel`/`ClientQuestionsPanel` would keep
- * showing one dataset's generated content after switching to a different
- * one, and `DataDictionaryPanel` would re-run its LLM call on every switch
- * because each switch builds a new `analysis` object. Keying by `datasetId`
- * makes React remount these three (only) when the active dataset actually
- * changes, giving each dataset a clean slate; the dictionary immediately
- * re-seeds itself from `persistedDictionary` rather than showing a blank
- * loading state.
+ * switches so their local UI state (tag filters, etc.) survives navigation,
+ * but without a key tied to the dataset, switching *datasets* would leave
+ * stale per-dataset UI state (e.g. a tag filter referencing the old
+ * dataset's tags) hanging around. Keying by `datasetId` makes React remount
+ * these three (only) when the active dataset actually changes. Left in place
+ * even though these panels no longer own any async LLM state themselves
+ * (Phase 8 made them pure display components) — still harmless, still
+ * correct defense-in-depth.
  */
 export function MainViewport({
   activeSection,
@@ -125,37 +128,14 @@ export function MainViewport({
   analysis,
   file,
   llmOutputs,
-  onDictionaryGenerated,
 }: MainViewportProps) {
-  const [dictionaryData, setDictionaryData] = useState<InsightGroup | null>(
-    null,
-  )
-  const [insightsData, setInsightsData] =
-    useState<BusinessInsightsResult | null>(null)
-  const [questionsData, setQuestionsData] = useState<InsightItem[] | null>(
-    null,
-  )
-
-  // Only the data dictionary is persisted/rehydrated as of this fix (Phase
-  // 8 will do the same for the other three slots as part of the automated
-  // pipeline). `llmOutputs.dataDictionary.data` is typed `InsightGroup |
-  // InsightGroup[] | null` at the storage layer since some slots (business
-  // insights) hold multiple groups — the dictionary slot itself only ever
-  // holds one, so this narrows defensively rather than assuming.
-  const persistedDictionaryData = llmOutputs.dataDictionary
-  const persistedDictionary =
-    persistedDictionaryData.status === 'done' &&
-    persistedDictionaryData.data &&
-    !Array.isArray(persistedDictionaryData.data)
-      ? persistedDictionaryData.data
-      : null
-
   const handleDownloadReport = () => {
-    const report = buildMarkdownReport(analysis, file, {
-      dictionary: dictionaryData,
-      businessInsights: insightsData,
-      clientQuestions: questionsData,
-    })
+    const reportContent: ReportLlmContent = {
+      dictionary: asSingleGroup(llmOutputs.dataDictionary),
+      businessInsights: asBusinessInsights(llmOutputs.businessInsights),
+      clientQuestions: asQuestionItems(llmOutputs.clientQuestions),
+    }
+    const report = buildMarkdownReport(analysis, file, reportContent)
     downloadMarkdown(reportFileName(file.name), report)
   }
 
@@ -200,34 +180,21 @@ export function MainViewport({
         <Suspense fallback={<SkeletonCardGrid count={3} />}>
           <DataDictionaryPanel
             key={datasetId}
-            analysis={analysis.structural}
-            datasetName={file.name}
-            persistedDictionary={persistedDictionary}
-            onGenerated={onDictionaryGenerated}
-            onDataChange={setDictionaryData}
+            slot={llmOutputs.dataDictionary}
+            columnCount={analysis.structural.columns.length}
           />
         </Suspense>
       </KeptMounted>
 
       <KeptMounted active={activeSection === 'insights'}>
         <Suspense fallback={<SkeletonCardGrid count={3} />}>
-          <BusinessInsightsPanel
-            key={datasetId}
-            table={analysis.table}
-            file={file}
-            onDataChange={setInsightsData}
-          />
+          <BusinessInsightsPanel key={datasetId} slot={llmOutputs.businessInsights} />
         </Suspense>
       </KeptMounted>
 
       <KeptMounted active={activeSection === 'questions'}>
         <Suspense fallback={<SkeletonList count={2} />}>
-          <ClientQuestionsPanel
-            key={datasetId}
-            columns={analysis.structural.columns}
-            qualityReport={analysis.quality}
-            onDataChange={setQuestionsData}
-          />
+          <ClientQuestionsPanel key={datasetId} slot={llmOutputs.clientQuestions} />
         </Suspense>
       </KeptMounted>
 

@@ -34,9 +34,22 @@
  */
 import { z } from 'zod'
 
-/** The five kinds of structured content the LLM providers generate for this app. */
+/**
+ * The kinds of structured content the LLM providers generate for this app.
+ * `explanation` (Phase 8, Milestone 8.1) is a single-item group — the
+ * automated pipeline's plain-language "business model / health / what's
+ * good / what to watch" narrative (`docs/beyond-MVP.md`'s Explanation
+ * section) — modeled as an `InsightGroup` like everything else rather than
+ * a bespoke shape, so it goes through the same schema validation and
+ * persistence path as the other four.
+ */
 export type InsightType =
-  'kpi' | 'insight' | 'recommendation' | 'question' | 'dictionaryEntry'
+  | 'kpi'
+  | 'insight'
+  | 'recommendation'
+  | 'question'
+  | 'dictionaryEntry'
+  | 'explanation'
 
 /** Priority/severity hint an item can carry for display and filtering. */
 export type InsightPriority = 'high' | 'medium' | 'low'
@@ -96,6 +109,7 @@ export const INSIGHT_TYPE_BOUNDS: Record<InsightType, InsightTypeBounds> = {
   recommendation: { label: 'Recommendations', min: 3, zodMax: 8 },
   question: { label: 'Client Questions', min: 2, zodMax: 10 },
   dictionaryEntry: { label: 'Data Dictionary', min: 0, zodMax: 500 },
+  explanation: { label: 'Explanation', min: 1, max: 1, zodMax: 1 },
 }
 
 // ---------------------------------------------------------------------------
@@ -108,6 +122,7 @@ const insightTypeSchema = z.enum([
   'recommendation',
   'question',
   'dictionaryEntry',
+  'explanation',
 ])
 
 const insightPrioritySchema = z.enum(['high', 'medium', 'low'])

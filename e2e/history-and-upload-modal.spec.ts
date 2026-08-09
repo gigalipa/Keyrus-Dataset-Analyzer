@@ -11,6 +11,13 @@ import { fileURLToPath } from 'node:url'
  * each step depends on IndexedDB state left behind by the previous one —
  * exactly the same "no dataset in history yet" -> "one dataset" -> "two
  * datasets" -> back down to zero progression a real user would drive.
+ *
+ * Phase 8, Milestone 8.2 update: each upload's pipeline now runs behind a
+ * full-viewport loading overlay that locks the shell, including the
+ * History button/panel — so this test waits for the overlay to clear (all
+ * four LLM steps done) before ever opening History, hitting real
+ * Mistral/Gemini APIs along the way. Generous timeouts throughout, matching
+ * `pipeline.spec.ts`'s convention.
  */
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -20,10 +27,16 @@ const DATASET_B = path.resolve(__dirname, './fixtures/dataset-b.csv')
 test('upload, switch, delete, and reload flow through the History panel and upload modal', async ({
   page,
 }) => {
+  // Two full pipelines (dataset A then dataset B) run for real behind the
+  // loading overlay before History is ever reachable.
+  test.setTimeout(300_000)
+
   // Start from a clean slate: no stored datasets.
   await page.goto('/')
   await page.evaluate(() => indexedDB.deleteDatabase('keyrus-dataset-analyzer'))
   await page.reload()
+
+  const overlay = page.getByRole('status', { name: 'Loading overlay' })
 
   // 1. Empty state: the upload modal appears immediately.
   await expect(page.getByRole('dialog', { name: /upload/i })).toBeVisible()
@@ -42,6 +55,11 @@ test('upload, switch, delete, and reload flow through the History panel and uplo
   // Modal should be gone once results show.
   await expect(page.getByRole('dialog', { name: /upload/i })).toBeHidden()
 
+  // The pipeline auto-starts right after upload and locks the shell
+  // (including History) under the loading overlay until all four LLM steps
+  // finish (Phase 8, Milestone 8.2).
+  await expect(overlay).toBeHidden({ timeout: 180_000 })
+
   // 3. Open History, use "New dataset" to upload dataset B.
   await page.getByRole('button', { name: /^History/ }).click()
   const historyDialog = page.getByRole('dialog', { name: 'Dataset history' })
@@ -56,6 +74,10 @@ test('upload, switch, delete, and reload flow through the History panel and uplo
   await expect(
     page.getByRole('heading', { name: 'Dataset overview' }),
   ).toBeVisible({ timeout: 15_000 })
+
+  // Dataset B's own pipeline must finish (overlay clears) before History
+  // is reachable again.
+  await expect(overlay).toBeHidden({ timeout: 180_000 })
 
   // 4. History now lists both datasets.
   await page.getByRole('button', { name: /^History/ }).click()
@@ -102,6 +124,9 @@ test('upload, switch, delete, and reload flow through the History panel and uplo
   await expect(
     page.getByRole('heading', { name: 'Dataset overview' }),
   ).toBeVisible({ timeout: 15_000 })
+  // Nothing left to resume, so the overlay (up briefly only for the initial
+  // IndexedDB-hydration check) should already be gone.
+  await expect(overlay).toBeHidden({ timeout: 5_000 })
 
   // 8. Delete the last remaining dataset: History auto-collapses and the
   // upload modal reappears immediately.

@@ -1,133 +1,35 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { generateDataDictionary } from '../../lib/llm/dataDictionary'
-import { useLlmRequest } from '../../hooks/useLlmRequest'
-import type { StructuralAnalysis } from '../../lib/analysis/structural'
+import { useMemo, useState } from 'react'
+import type { LlmOutputSlot } from '../../types/persistedDataset'
 import type { InsightGroup, InsightItem } from '../../lib/llm/schema'
 import { SkeletonCardGrid } from '../shared/Skeleton'
 
 interface DataDictionaryPanelProps {
-  /** Phase 3's structural analysis (`analyzeStructure`) for the uploaded dataset. */
-  analysis: StructuralAnalysis
-  /** Optional dataset/file name, passed through to the prompt for context. */
-  datasetName?: string
-  /**
-   * A dictionary already generated for this dataset in a previous session or
-   * before a dataset switch (`PersistedDataset.llmOutputs.dataDictionary`,
-   * via `useDatasetSession`). When present, this panel seeds itself from it
-   * instead of calling the LLM again — see the Phase 7 bug-fix note on the
-   * auto-trigger effect below.
-   */
-  persistedDictionary?: InsightGroup | null
-  /**
-   * Fired once, right after a *fresh* generation (not a seed) succeeds, so
-   * the caller can persist it for next time. Deliberately separate from
-   * `onDataChange`, which also fires for seeded data.
-   */
-  onGenerated?: (data: InsightGroup) => void
-  /**
-   * Notified whenever this panel's generated dictionary changes, so
-   * `ResultsView` can include it in the Milestone 5.3 downloadable Markdown
-   * report without this panel needing to know anything about reports.
-   */
-  onDataChange?: (data: InsightGroup | null) => void
+  /** This dataset's `llmOutputs.dataDictionary` slot — the pipeline (`useDatasetSession`, Phase 8) is the only thing that ever writes to it now. */
+  slot: LlmOutputSlot
+  /** Column count, purely for the "N columns" copy and the loading skeleton's card count — no longer used to decide whether to auto-generate. */
+  columnCount: number
 }
 
 /**
- * Phase 4, Milestone 4.2 display component: triggers `generateDataDictionary`
- * (Mistral) via the shared `useLlmRequest` loading-state hook and renders the
- * resulting `InsightGroup` — one card per column with its name, LLM-generated
- * description, data type, and example values — plus tag-based filter chips
- * (data type and data-quality-concern facets populated by
- * `dataDictionary.ts`). Renders generically from the shared schema, not a
- * bespoke shape, so it stays compatible with whatever tags/metadata a future
- * prompt revision adds.
+ * Phase 4, Milestone 4.2 display component; rewritten Phase 8, Milestone 8.1
+ * into a pure display component. Renders the `InsightGroup` produced by the
+ * automated pipeline's data-dictionary step — one card per column with its
+ * name, LLM-generated description, data type, and example values — plus
+ * tag-based filter chips (data type and data-quality-concern facets
+ * populated by `dataDictionary.ts`). Renders generically from the shared
+ * schema, not a bespoke shape, so it stays compatible with whatever
+ * tags/metadata a future prompt revision adds.
  *
- * Phase 5, Part 3: per the product decision that the data dictionary (unlike
- * business insights / client questions) should generate automatically once
- * analysis completes, this fires `generate` itself in an effect the first
- * time it receives a real `analysis` (and again if `analysis` changes to a
- * new dataset), rather than waiting for a user click. The button stays as a
- * manual "Regenerate" affordance for a fresh take after the auto-run.
+ * No longer owns any `useLlmRequest`/trigger logic — the pipeline
+ * (`src/lib/pipeline/runPipeline.ts`) is the single place any LLM call for
+ * this dataset originates from. This component just renders whatever
+ * `slot.status` currently is.
  */
-export function DataDictionaryPanel({
-  analysis,
-  datasetName,
-  persistedDictionary,
-  onGenerated,
-  onDataChange,
-}: DataDictionaryPanelProps) {
-  const { status, data, error, run, seed } = useLlmRequest<InsightGroup>()
+export function DataDictionaryPanel({ slot, columnCount }: DataDictionaryPanelProps) {
   const [activeTag, setActiveTag] = useState<string | null>(null)
 
-  const columnCount = analysis.columns.length
-
-  // Marked `true` only while a fresh `run(...)` is in flight/just resolved,
-  // so the `onGenerated` effect below can tell "just generated for real"
-  // apart from "just seeded from a persisted result" — both land on
-  // `status === 'success'`, but only the former should be persisted again.
-  const generatingRef = useRef(false)
-
-  const generate = () => {
-    setActiveTag(null)
-    generatingRef.current = true
-    void run((signal) =>
-      generateDataDictionary({ analysis, datasetName, signal }),
-    )
-  }
-
-  // Once per distinct `analysis` (new dataset — this component is also
-  // `key`ed by dataset id at the call site, so "new dataset" and "new mount"
-  // coincide): seed from an already-generated result if one was persisted
-  // for this dataset, otherwise auto-trigger generation. Guarded by a ref
-  // (rather than relying on `status`) so this doesn't re-fire on every
-  // render and doesn't fight with a manual "Regenerate" click's own `run`
-  // call.
-  //
-  // Bug fix (Phase 7 live testing): this used to unconditionally call
-  // `generate()` on every mount, which — combined with `useDatasetSession`
-  // building a brand-new `AnalysisResult` object on every dataset switch —
-  // meant switching between two already-analyzed datasets silently
-  // re-ran the LLM call every time, burning API calls for no reason and
-  // discarding the previous result. `persistedDictionary` (sourced from
-  // `PersistedDataset.llmOutputs.dataDictionary`) is what actually survives
-  // a switch/reload, so it — not local component state — is the source of
-  // truth for "has this dataset already been documented".
-  const autoTriggeredForRef = useRef<StructuralAnalysis | null>(null)
-  useEffect(() => {
-    if (columnCount === 0) return
-    if (autoTriggeredForRef.current === analysis) return
-    autoTriggeredForRef.current = analysis
-    setActiveTag(null)
-
-    if (persistedDictionary) {
-      seed(persistedDictionary)
-      return
-    }
-
-    generatingRef.current = true
-    void run((signal) =>
-      generateDataDictionary({ analysis, datasetName, signal }),
-    )
-    // Re-run only when the underlying analysis object identity changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [analysis, columnCount, persistedDictionary])
-
-  // Notify the parent (for the downloadable report) from the hook's own
-  // reactive `status`/`data` rather than a `run(...).then(...)` chain — the
-  // promise `run` returns resolves to `null` for a superseded/aborted
-  // request too, which would incorrectly report "no dictionary" over a
-  // still-valid in-flight regeneration. `status === 'success'` is only ever
-  // true for the current, non-stale request (guarded inside `useLlmRequest`
-  // via its own request-id check), so this can't fire out of order — true
-  // whether the success came from a real generation or a seed.
-  useEffect(() => {
-    if (status !== 'success') return
-    onDataChange?.(data)
-    if (generatingRef.current && data) {
-      generatingRef.current = false
-      onGenerated?.(data)
-    }
-  }, [status, data, onDataChange, onGenerated])
+  const data: InsightGroup | null =
+    slot.status === 'done' && slot.data && !Array.isArray(slot.data) ? slot.data : null
 
   const allTags = useMemo(() => collectSortedTags(data?.items ?? []), [data])
 
@@ -159,16 +61,6 @@ export function DataDictionaryPanel({
             {columnCount === 1 ? '' : 's'} means.
           </p>
         </div>
-
-        {status !== 'loading' && columnCount > 0 && (
-          <button
-            type="button"
-            onClick={generate}
-            className="shrink-0 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700"
-          >
-            {status === 'success' ? 'Regenerate' : 'Generate data dictionary'}
-          </button>
-        )}
       </div>
 
       {columnCount === 0 && (
@@ -177,7 +69,7 @@ export function DataDictionaryPanel({
         </p>
       )}
 
-      {status === 'loading' && (
+      {(slot.status === 'pending' || slot.status === 'running') && (
         <div className="flex flex-col gap-4">
           <div
             role="status"
@@ -194,26 +86,22 @@ export function DataDictionaryPanel({
         </div>
       )}
 
-      {status === 'error' && (
+      {slot.status === 'error' && (
         <div
           role="alert"
-          className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-300"
+          className="flex flex-col gap-1 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-300"
         >
           <span>
-            {error?.userMessage ??
+            {slot.errorMessage ??
               'Something went wrong generating the data dictionary.'}
           </span>
-          <button
-            type="button"
-            onClick={generate}
-            className="shrink-0 rounded-md border border-red-300 px-2.5 py-1 text-xs font-medium text-red-800 hover:bg-red-100 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-900"
-          >
-            Retry
-          </button>
+          <span className="text-xs text-red-700 dark:text-red-400">
+            Use "Re-run analysis" (in the sidebar) to try again.
+          </span>
         </div>
       )}
 
-      {status === 'success' && data && (
+      {slot.status === 'done' && data && (
         <div className="flex flex-col gap-4">
           {allTags.length > 0 && (
             <div

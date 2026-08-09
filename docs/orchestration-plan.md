@@ -257,6 +257,17 @@ complete and confirmed.
 and removal of manual triggers all need a real look before Phase 9/10 build views on this output. Also the
 first phase in this batch with no rollback-cheap undo — prompt-chaining behavior is expensive to redo if wrong.
 
+**Execution note:** Milestones 8.1-8.3 were dispatched and verified sequentially (not parallelized 8.2/8.3 as
+the plan allowed) — each needed real end-to-end Playwright verification against the live pipeline, and running
+them one at a time kept the orchestrator's own independent re-verification tractable. All three verified
+independently (lint/tsc/build/vitest/Playwright re-run by the orchestrator, not just taken on the subagents'
+word), including inspecting real chained-prompt payloads for Milestone 8.1. **Observed:** the full 9-spec suite
+run back-to-back hits real Mistral/Gemini rate limits/latency under that much sequential live-API load — one
+spec's 180s overlay-clear wait timed out at 3.9 minutes in a full-suite run, then passed cleanly in 55s when
+re-run in isolation immediately after. Treat this as a test-throughput characteristic of this suite now that
+every spec drives a real 4-step LLM pipeline, not a product regression — confirm via isolated re-run before
+treating any single full-suite failure as real.
+
 ### Phase 9 — Business-Facing Views
 **Mode:** parallel
 **Agents:**

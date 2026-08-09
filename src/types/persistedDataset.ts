@@ -31,6 +31,7 @@ import type { NumericColumnAnalysis } from '../lib/analysis/numeric'
 import type { DataQualityReport } from '../lib/analysis/quality'
 import type { DateColumnAnalysis } from '../lib/analysis/dates'
 import type { InsightGroup } from '../lib/llm/schema'
+import type { BusinessInsightsResult } from '../lib/llm/businessInsights'
 
 /**
  * The cleaned/normalized table, serialized as plain data instead of an
@@ -125,6 +126,39 @@ export interface PersistedDataset {
     explanation: LlmOutputSlot
     clientQuestions: LlmOutputSlot
   }
+}
+
+/**
+ * `LlmOutputSlot.data` decode/encode helpers for the two slot shapes, kept in
+ * this one place (per Phase 8, Milestone 8.3's note) so `runPipeline.ts`,
+ * `MainViewport.tsx`, `BusinessInsightsPanel.tsx`, and `TopBar.tsx` never
+ * re-implement the same array-unpacking convention independently and risk
+ * drifting apart.
+ */
+
+/** Narrows a slot's `data` to a single `InsightGroup`, for slots that never hold an array (`dataDictionary`, `explanation`). */
+export function asSingleGroup(slot: LlmOutputSlot): InsightGroup | null {
+  return slot.status === 'done' && slot.data && !Array.isArray(slot.data)
+    ? slot.data
+    : null
+}
+
+/**
+ * Reconstructs `BusinessInsightsResult` from the `businessInsights` slot's
+ * stored `[kpis, insights, recommendations]` positional array (the encoding
+ * `businessInsightsToSlotData` below produces), or `null` if the slot isn't
+ * `'done'` or the shape doesn't match.
+ */
+export function asBusinessInsights(slot: LlmOutputSlot): BusinessInsightsResult | null {
+  if (slot.status !== 'done' || !Array.isArray(slot.data)) return null
+  const [kpis, insights, recommendations] = slot.data
+  if (!kpis || !insights || !recommendations) return null
+  return { kpis, insights, recommendations }
+}
+
+/** Encodes a `BusinessInsightsResult` into the positional array shape the `businessInsights` slot stores. */
+export function businessInsightsToSlotData(result: BusinessInsightsResult): InsightGroup[] {
+  return [result.kpis, result.insights, result.recommendations]
 }
 
 /** Lightweight summary used for the History sidebar (Milestone 6.2) — avoids loading full table/analysis payloads just to render a list. */

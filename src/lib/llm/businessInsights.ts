@@ -12,6 +12,7 @@ import { callMistralRawText } from './mistral'
 import { runStructuredInsightRequest } from './client'
 import {
   buildSystemPrompt,
+  condenseInsightGroupForContext,
   formatDatasetContext,
   formatInsightGroupInstruction,
 } from './prompt'
@@ -39,6 +40,14 @@ const TASK_INSTRUCTIONS: Record<'kpi' | 'insight' | 'recommendation', string> =
       'omit `metadata` and describe the KPI qualitatively instead.',
       'Tag each item with its business domain (e.g. "revenue", "operations",',
       '"data-quality", "customer") so the UI can filter by domain.',
+      '',
+      'Do NOT propose data-profile statistics as KPIs — e.g. row count,',
+      'column count, missing-value count/percentage, file size, or other',
+      'structural/quality metrics about the dataset itself. Those already',
+      'have their own dedicated Data Overview and Data Quality sections',
+      'elsewhere in the app. A KPI here must describe what the data implies',
+      'about the business (revenue, operations, customers, growth, risk,',
+      'etc.), not a fact about the dataset as a file.',
     ].join('\n'),
     insight: [
       'Task: Surface concrete insights about this dataset — patterns, trends,',
@@ -73,17 +82,35 @@ function buildBusinessInsightsSystemPrompt(
   )
 }
 
-/** Builds the user message: the condensed dataset analysis summary as context. */
+/**
+ * Builds the user message: the condensed dataset analysis summary as
+ * context, plus — Phase 8, Milestone 8.1's chaining requirement — the
+ * already-generated data dictionary, condensed, when the pipeline has one
+ * available. Manual, standalone calls to this function (e.g. before the
+ * pipeline existed) simply omit `dictionary` and get the Phase 4 behavior.
+ */
 function buildBusinessInsightsUserContent(
   summary: DatasetAnalysisSummary,
+  dictionary?: InsightGroup,
 ): string {
   return formatDatasetContext('Dataset analysis summary', {
     ...summary,
+    ...(dictionary
+      ? { dataDictionary: condenseInsightGroupForContext(dictionary) }
+      : {}),
   })
 }
 
 export interface GenerateBusinessInsightsOptions {
   signal?: AbortSignal
+  /**
+   * The pipeline's already-generated data dictionary (Phase 8, Milestone
+   * 8.1), included as context so KPIs/insights/recommendations can build on
+   * what the dictionary already established about each column's meaning,
+   * per beyond-MVP.md's chained-pipeline requirement. Optional so this
+   * function still works standalone.
+   */
+  dictionary?: InsightGroup
 }
 
 /**
@@ -98,7 +125,7 @@ export async function generateBusinessInsights(
   summary: DatasetAnalysisSummary,
   options: GenerateBusinessInsightsOptions = {},
 ): Promise<BusinessInsightsResult> {
-  const userContent = buildBusinessInsightsUserContent(summary)
+  const userContent = buildBusinessInsightsUserContent(summary, options.dictionary)
 
   const [kpis, insights, recommendations] = await Promise.all([
     runStructuredInsightRequest({

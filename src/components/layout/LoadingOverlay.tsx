@@ -26,6 +26,7 @@ export function LoadingOverlay({ statusText }: LoadingOverlayProps) {
     <div
       role="status"
       aria-live="polite"
+      aria-label="Loading overlay"
       className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-slate-50/95 backdrop-blur-sm dark:bg-slate-900/95"
     >
       <span

@@ -1,24 +1,29 @@
 /**
- * Session orchestrator hook — Phase 6, Milestone 6.2.
+ * Session orchestrator hook — Phase 6, Milestone 6.2; Phase 8, Milestone 8.1.
  *
  * `useFileUpload` (Phase 5) only knows how to parse + analyze one file for
  * the lifetime of a tab; `src/lib/storage/db.ts` (Milestone 6.1) only knows
- * how to read/write `PersistedDataset` records. Neither knows about the
- * other. This hook is the thin layer that connects them into the actual
- * product behavior beyond-MVP.md describes:
+ * how to read/write `PersistedDataset` records; `runPipeline`
+ * (`src/lib/pipeline/runPipeline.ts`, Milestone 8.1) only knows how to run
+ * the four chained LLM steps for one dataset, given its current
+ * `llmOutputs`. This hook is the thin layer that connects all three into the
+ * actual product behavior beyond-MVP.md describes:
  *
- * - A freshly uploaded dataset is persisted the moment it finishes
- *   analysis (via `useFileUpload`'s `onSuccess` callback).
+ * - A freshly uploaded dataset is persisted the moment it finishes analysis
+ *   (via `useFileUpload`'s `onSuccess` callback), then the pipeline runs
+ *   automatically — no manual "Generate" click anywhere.
  * - On mount, the most recently uploaded dataset (if any) loads
  *   automatically from IndexedDB — no re-parsing, no modal. If none exists,
- *   the upload modal shows immediately.
+ *   the upload modal shows immediately. If the loaded dataset's pipeline
+ *   didn't finish in a previous session (tab closed/crashed mid-sequence),
+ *   it resumes automatically from wherever it left off.
  * - The History panel's list, dataset switching, and delete-with-
  *   auto-collapse-to-empty-state all live here so `App.tsx` and the panel
  *   component itself stay dumb/presentational.
- *
- * Deliberately does NOT touch `llmOutputs` beyond what
- * `createPendingLlmOutputs()` already sets up — Phase 8 owns running that
- * pipeline; this hook only ever persists/reads slots, never executes them.
+ * - `persistLlmSlot`/`runPipelineForDataset` are the general mechanism that
+ *   superseded Phase 7's one-off `persistDataDictionary`: every step of
+ *   every run (auto-triggered or via `rerunAnalysis`) flows through the same
+ *   path, so storage and view state can never drift between the four slots.
  */
 import { useCallback, useEffect, useState } from 'react'
 import type { AnalysisResult } from '../types/upload'
@@ -38,7 +43,7 @@ import {
   listDatasets,
   updateDataset,
 } from '../lib/storage/db'
-import type { InsightGroup } from '../lib/llm/schema'
+import { runPipeline, type PipelineStepName } from '../lib/pipeline/runPipeline'
 import { useFileUpload } from './useFileUpload'
 
 /** What the center viewport should currently show. */
@@ -52,12 +57,9 @@ export type DatasetView =
       analysis: AnalysisResult
       /**
        * The dataset record's persisted LLM outputs — carried through so
-       * components (e.g. `DataDictionaryPanel`) can seed themselves from an
-       * already-generated result on mount instead of unconditionally
-       * regenerating, which was producing a real bug: switching between two
-       * previously-analyzed datasets re-ran the data dictionary's LLM call
-       * every single time, because each switch built a brand-new
-       * `AnalysisResult` object with no memory of a prior generation.
+       * display panels can render an already-generated result on mount
+       * instead of showing a blank/loading state, and so `runPipeline` can
+       * skip steps that already finished.
        */
       llmOutputs: PersistedDataset['llmOutputs']
     }
@@ -80,9 +82,10 @@ function hydrateAnalysis(record: PersistedDataset): AnalysisResult {
 /**
  * Reconstructs a `File`-like object for a dataset loaded from storage — the
  * original `File` itself is never persisted (only its parsed contents are),
- * but `ResultsView` and its children (e.g. `BusinessInsightsPanel`, which
- * re-derives file size for its LLM prompt context) expect a real `File`.
- * Content bytes are zero-filled; only `name` and `size` need to be honest.
+ * but `ResultsView` and its children (e.g. the pipeline's business-insights
+ * step, which re-derives file size for its LLM prompt context) expect a real
+ * `File`. Content bytes are zero-filled; only `name` and `size` need to be
+ * honest.
  */
 function makeSyntheticFile(fileName: string, fileSizeMB: number): File {
   const byteLength = Math.max(0, Math.round(fileSizeMB * 1024 * 1024))
@@ -101,11 +104,19 @@ async function hydrateRecordIntoView(record: PersistedDataset): Promise<ActiveDa
   }
 }
 
+/** `true` if any of the four LLM slots hasn't finished — used to decide whether a loaded dataset needs its pipeline resumed. */
+function isPipelineIncomplete(llmOutputs: PersistedDataset['llmOutputs']): boolean {
+  return Object.values(llmOutputs).some((slot) => slot.status !== 'done')
+}
+
 export function useDatasetSession() {
   const [view, setView] = useState<DatasetView>({ kind: 'loading' })
   const [history, setHistory] = useState<PersistedDatasetSummary[]>([])
   const [historyOpen, setHistoryOpen] = useState(false)
   const [persistError, setPersistError] = useState<string | null>(null)
+  const [pipelineRunning, setPipelineRunning] = useState(false)
+  const [currentPipelineStep, setCurrentPipelineStep] =
+    useState<PipelineStepName | null>(null)
 
   // Snapshot of the active dataset to restore if the user opens "New
   // dataset" and then dismisses the upload modal without uploading
@@ -119,6 +130,86 @@ export function useDatasetSession() {
     setHistory(summaries)
     return summaries
   }, [])
+
+  /**
+   * Merges a full `llmOutputs` object into the given dataset's IndexedDB
+   * record and, if that dataset is still the one on screen, mirrors it into
+   * `view` state too. Takes the whole `llmOutputs` object (not one slot)
+   * because `updateDataset`'s patch is a shallow merge — passing just one
+   * slot would silently wipe out the other three's persisted state.
+   */
+  const persistLlmSlot = useCallback(
+    (datasetId: string, llmOutputs: PersistedDataset['llmOutputs']) => {
+      setView((current) =>
+        current.kind === 'active' && current.datasetId === datasetId
+          ? { ...current, llmOutputs }
+          : current,
+      )
+
+      void updateDataset(datasetId, { llmOutputs }).catch((error) => {
+        setPersistError(
+          error instanceof Error
+            ? error.message
+            : 'Could not save analysis results to History.',
+        )
+      })
+    },
+    [],
+  )
+
+  /**
+   * Runs `runPipeline` for one dataset, wiring its `onStepUpdate` callback
+   * to `persistLlmSlot` (storage + view state) and to the
+   * `pipelineRunning`/`currentPipelineStep` state exposed below for a later
+   * milestone's stage-by-stage loading overlay. `initialLlmOutputs` is
+   * whatever the pipeline should treat as "already done" — the dataset's
+   * real persisted state for an auto-triggered run/resume, or four fresh
+   * `'pending'` slots for `rerunAnalysis`'s "start over" behavior.
+   */
+  const runPipelineForDataset = useCallback(
+    async (
+      datasetId: string,
+      file: File,
+      analysis: AnalysisResult,
+      initialLlmOutputs: PersistedDataset['llmOutputs'],
+    ) => {
+      let llmOutputsSnapshot = initialLlmOutputs
+      setPipelineRunning(true)
+      try {
+        await runPipeline({
+          table: analysis.table,
+          file,
+          structural: analysis.structural,
+          quality: analysis.quality,
+          datasetName: file.name,
+          llmOutputs: initialLlmOutputs,
+          onStepUpdate: (step, slot) => {
+            llmOutputsSnapshot = { ...llmOutputsSnapshot, [step]: slot }
+            setCurrentPipelineStep(slot.status === 'running' ? step : null)
+            persistLlmSlot(datasetId, llmOutputsSnapshot)
+          },
+        })
+      } finally {
+        setPipelineRunning(false)
+        setCurrentPipelineStep(null)
+      }
+    },
+    [persistLlmSlot],
+  )
+
+  /** Kicks off the pipeline for a just-hydrated view if any of its four slots isn't `'done'` yet — covers both fresh-upload and resume-on-reload. */
+  const maybeResumePipeline = useCallback(
+    (activeView: ActiveDatasetView, llmOutputs: PersistedDataset['llmOutputs']) => {
+      if (!isPipelineIncomplete(llmOutputs)) return
+      void runPipelineForDataset(
+        activeView.datasetId,
+        activeView.file,
+        activeView.analysis,
+        llmOutputs,
+      )
+    },
+    [runPipelineForDataset],
+  )
 
   const handleUploadSuccess = useCallback(
     (analysis: AnalysisResult, file: File) => {
@@ -155,6 +246,10 @@ export function useDatasetSession() {
         try {
           await createDataset(record)
           await refreshHistory()
+          // Auto-trigger the chained pipeline right after the initial
+          // pending record is persisted, using the in-memory `analysis`
+          // already on hand — no need to re-read it back from IndexedDB.
+          void runPipelineForDataset(id, file, analysis, record.llmOutputs)
         } catch (error) {
           setPersistError(
             error instanceof Error
@@ -164,7 +259,7 @@ export function useDatasetSession() {
         }
       })()
     },
-    [refreshHistory],
+    [refreshHistory, runPipelineForDataset],
   )
 
   const {
@@ -193,11 +288,16 @@ export function useDatasetSession() {
         setView({ kind: 'upload' })
         return
       }
-      setView(await hydrateRecordIntoView(newest))
+      const activeView = await hydrateRecordIntoView(newest)
+      if (cancelled) return
+      setView(activeView)
+      maybeResumePipeline(activeView, newest.llmOutputs)
     })()
     return () => {
       cancelled = true
     }
+    // Intentionally runs once on mount only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const openHistory = useCallback(() => {
@@ -207,13 +307,18 @@ export function useDatasetSession() {
 
   const closeHistory = useCallback(() => setHistoryOpen(false), [])
 
-  const selectDataset = useCallback(async (id: string) => {
-    const record = await getDataset(id)
-    if (!record) return
-    setPreUploadView(null)
-    setView(await hydrateRecordIntoView(record))
-    setHistoryOpen(false)
-  }, [])
+  const selectDataset = useCallback(
+    async (id: string) => {
+      const record = await getDataset(id)
+      if (!record) return
+      setPreUploadView(null)
+      const activeView = await hydrateRecordIntoView(record)
+      setView(activeView)
+      setHistoryOpen(false)
+      maybeResumePipeline(activeView, record.llmOutputs)
+    },
+    [maybeResumePipeline],
+  )
 
   /** "New dataset" — from the History panel, or the initial empty state. */
   const startNewDataset = useCallback(() => {
@@ -233,32 +338,21 @@ export function useDatasetSession() {
   }, [resetUpload, preUploadView])
 
   /**
-   * Persists a freshly-generated data dictionary to the active dataset's
-   * IndexedDB record (`llmOutputs.dataDictionary`) and mirrors it into local
-   * `view` state, so a later switch away and back to this same dataset can
-   * seed `DataDictionaryPanel` from storage instead of regenerating it.
+   * The single "Re-run analysis" affordance (per the roadmap, replacing the
+   * old per-panel "Regenerate" buttons): re-invokes the pipeline for the
+   * active dataset from scratch, treating all four slots as needing a fresh
+   * run regardless of their current `'done'` status — a real retry, not a
+   * resume.
    */
-  const persistDataDictionary = useCallback((data: InsightGroup) => {
-    setView((current) => {
-      if (current.kind !== 'active') return current
-      const nextLlmOutputs: PersistedDataset['llmOutputs'] = {
-        ...current.llmOutputs,
-        dataDictionary: { status: 'done', data },
-      }
-
-      void updateDataset(current.datasetId, {
-        llmOutputs: nextLlmOutputs,
-      }).catch((error) => {
-        setPersistError(
-          error instanceof Error
-            ? error.message
-            : 'Could not save the data dictionary to History.',
-        )
-      })
-
-      return { ...current, llmOutputs: nextLlmOutputs }
-    })
-  }, [])
+  const rerunAnalysis = useCallback(() => {
+    if (view.kind !== 'active') return
+    void runPipelineForDataset(
+      view.datasetId,
+      view.file,
+      view.analysis,
+      createPendingLlmOutputs(),
+    )
+  }, [view, runPipelineForDataset])
 
   const removeDataset = useCallback(
     async (id: string) => {
@@ -298,6 +392,10 @@ export function useDatasetSession() {
     cancelUpload,
     canCancelUpload: preUploadView !== null,
     removeDataset,
-    persistDataDictionary,
+    /** `true` while any pipeline step is in flight for the active dataset (auto-triggered or via `rerunAnalysis`) — for a future stage-by-stage loading overlay (Milestone 8.2). */
+    pipelineRunning,
+    /** The step currently running, or `null` when idle/between steps — same future-overlay purpose as `pipelineRunning`. */
+    currentPipelineStep,
+    rerunAnalysis,
   }
 }

@@ -1,55 +1,29 @@
-import { useEffect, useMemo, useState } from 'react'
-import type { DataQualityReport } from '../../lib/analysis/quality'
-import type { ColumnMetadata } from '../../lib/analysis/structural'
-import { generateClientQuestions } from '../../lib/llm/clientQuestions'
-import type { InsightItem } from '../../lib/llm/schema'
-import { useLlmRequest } from '../../hooks/useLlmRequest'
+import { useMemo, useState } from 'react'
+import type { LlmOutputSlot } from '../../types/persistedDataset'
+import type { InsightGroup, InsightItem } from '../../lib/llm/schema'
 import { SkeletonList } from '../shared/Skeleton'
 import { CopyButton } from '../shared/CopyButton'
 
 interface ClientQuestionsPanelProps {
-  columns: ColumnMetadata[]
-  qualityReport: DataQualityReport
-  /**
-   * Notified whenever this panel's generated questions change (including
-   * back to `null` on a fresh dataset), so `ResultsView` can include them in
-   * the Milestone 5.3 downloadable Markdown report without this panel
-   * needing to know anything about reports.
-   */
-  onDataChange?: (data: InsightItem[] | null) => void
+  /** This dataset's `llmOutputs.clientQuestions` slot — a single `InsightGroup` of `type: 'question'` items when `status === 'done'`. */
+  slot: LlmOutputSlot
 }
 
 /**
- * Milestone 4.4 display component: renders the `InsightGroup` of `type:
- * 'question'` items produced by `generateClientQuestions` as a numbered
- * list, with topic-tag filter chips above it and a per-question
- * copy-to-clipboard button. Owns its own `useLlmRequest` lifecycle — idle
- * shows a "Generate" trigger, loading shows a spinner, error shows a retry
- * button, success renders the list.
+ * Milestone 4.4 display component; rewritten Phase 8, Milestone 8.1 into a
+ * pure display component. Renders the `InsightGroup` of `type: 'question'`
+ * items produced by the pipeline's client-questions step as a numbered list,
+ * with topic-tag filter chips above it and a per-question
+ * copy-to-clipboard button.
+ *
+ * No longer owns any `useLlmRequest`/trigger logic — the pipeline generates
+ * this automatically; this component only ever renders `slot`.
  */
-export function ClientQuestionsPanel({
-  columns,
-  qualityReport,
-  onDataChange,
-}: ClientQuestionsPanelProps) {
-  const { status, data, error, run } =
-    useLlmRequest<Awaited<ReturnType<typeof generateClientQuestions>>>()
+export function ClientQuestionsPanel({ slot }: ClientQuestionsPanelProps) {
   const [activeTopic, setActiveTopic] = useState<string | null>(null)
 
-  const handleGenerate = () => {
-    void run((signal) =>
-      generateClientQuestions(columns, qualityReport, signal),
-    )
-  }
-
-  // Notify the parent (for the downloadable report) from the hook's own
-  // reactive `status`/`data` rather than a `run(...).then(...)` chain — see
-  // the identical note in `DataDictionaryPanel.tsx` for why: the promise
-  // `run` returns resolves to `null` for a superseded/aborted request too,
-  // which `status === 'success'` never does.
-  useEffect(() => {
-    if (status === 'success') onDataChange?.(data ? data.items : null)
-  }, [status, data, onDataChange])
+  const data: InsightGroup | null =
+    slot.status === 'done' && slot.data && !Array.isArray(slot.data) ? slot.data : null
 
   const allTopics = useMemo(() => {
     if (!data) return []
@@ -75,18 +49,9 @@ export function ClientQuestionsPanel({
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
           Client Questions
         </h2>
-        {status !== 'loading' && (
-          <button
-            type="button"
-            onClick={handleGenerate}
-            className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
-          >
-            {status === 'success' ? 'Regenerate' : 'Generate questions'}
-          </button>
-        )}
       </div>
 
-      {status === 'loading' && (
+      {(slot.status === 'pending' || slot.status === 'running') && (
         <div className="flex flex-col gap-3">
           <div
             role="status"
@@ -103,30 +68,19 @@ export function ClientQuestionsPanel({
         </div>
       )}
 
-      {status === 'error' && (
+      {slot.status === 'error' && (
         <div
           role="alert"
-          className="flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-300"
+          className="flex flex-col gap-1 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-300"
         >
-          <span>{error?.userMessage ?? 'Something went wrong.'}</span>
-          <button
-            type="button"
-            onClick={handleGenerate}
-            className="shrink-0 rounded-md border border-current px-2 py-1 text-xs font-medium"
-          >
-            Retry
-          </button>
+          <span>{slot.errorMessage ?? 'Something went wrong.'}</span>
+          <span className="text-xs text-red-700 dark:text-red-400">
+            Use "Re-run analysis" (in the sidebar) to try again.
+          </span>
         </div>
       )}
 
-      {status === 'idle' && (
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Generate a set of strategic questions to ask the client about this
-          dataset.
-        </p>
-      )}
-
-      {status === 'success' && data && (
+      {slot.status === 'done' && data && (
         <>
           {allTopics.length > 0 && (
             <div

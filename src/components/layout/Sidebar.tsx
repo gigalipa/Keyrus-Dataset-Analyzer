@@ -7,6 +7,8 @@ interface SidebarProps {
   /** Mirrors `TopBar`'s gating: footer action buttons only appear once `view.kind === 'active'`. */
   hasActiveDataset?: boolean
   onStartNewDataset?: () => void
+  /** Phase 8, Milestone 8.1's single re-run affordance — re-invokes the full LLM pipeline for the active dataset from scratch, replacing the old per-panel "Regenerate" buttons. */
+  onRerunAnalysis?: () => void
 }
 
 /** Simple hamburger/close glyph for the mobile toggle — inline SVG, no icon library, matching `TopBar`'s `HistoryIcon` convention. */
@@ -50,6 +52,7 @@ export function Sidebar({
   onSelectSection,
   hasActiveDataset = false,
   onStartNewDataset,
+  onRerunAnalysis,
 }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -108,6 +111,14 @@ export function Sidebar({
         className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800"
       >
         Download PDF Report
+      </button>
+      <button
+        type="button"
+        onClick={onRerunAnalysis}
+        title="Re-runs the data dictionary, business insights, explanation, and client questions from scratch"
+        className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+      >
+        Re-run analysis
       </button>
       <button
         type="button"

@@ -8,7 +8,7 @@
  * own prompt template, which composes these helpers rather than
  * reimplementing prompt scaffolding.
  */
-import { INSIGHT_TYPE_BOUNDS, type InsightType } from './schema'
+import { INSIGHT_TYPE_BOUNDS, type InsightGroup, type InsightType } from './schema'
 
 /** A minimal, provider-agnostic chat message. */
 export interface PromptMessage {
@@ -114,6 +114,27 @@ export function buildCorrectiveRetryMessage(issues: string): string {
     'requirement above. Do not include any explanation, markdown, or text',
     'outside the JSON object.',
   ].join('\n')
+}
+
+/**
+ * Condenses an already-generated `InsightGroup` down to just what's useful
+ * as *context* for a later, chained prompt (Phase 8, Milestone 8.1's
+ * "feed prior-step output into each subsequent LLM prompt") — title,
+ * description, tags, and priority if set. Drops `id` and `metadata` (e.g.
+ * a dictionary entry's raw `sampleValues`, a KPI's numeric `value`/`unit`)
+ * since those are either irrelevant to a downstream prompt or would bloat
+ * it without adding useful signal; the description text already carries the
+ * substance a later step needs to build on.
+ */
+export function condenseInsightGroupForContext(
+  group: InsightGroup,
+): Array<{ title: string; description: string; tags: string[]; priority?: string }> {
+  return group.items.map((item) => ({
+    title: item.title,
+    description: item.description,
+    tags: item.tags,
+    ...(item.priority ? { priority: item.priority } : {}),
+  }))
 }
 
 /** Assembles the final message list (system + user) for a structured-output call. */
