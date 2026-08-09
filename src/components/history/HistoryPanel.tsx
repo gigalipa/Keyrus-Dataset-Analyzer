@@ -18,10 +18,9 @@ interface HistoryPanelProps {
  * the consultant switch between them or delete one, and offers "New
  * dataset" to return to the upload flow.
  *
- * This is a temporary, honest placement (triggered from a plain header
- * button — see `Header.tsx`) — the real top-bar/left-sidebar shell is
- * Phase 7's job, which will relocate the trigger without touching this
- * panel's behavior.
+ * Triggered from the top bar's History button (see `TopBar.tsx`, Phase 7
+ * Milestone 7.1) — this panel's own behavior is untouched by that
+ * milestone; the left-sidebar shell is a later Phase 7 milestone's job.
  */
 export function HistoryPanel({
   open,

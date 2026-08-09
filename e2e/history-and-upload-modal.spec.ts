@@ -31,41 +31,60 @@ test('upload, switch, delete, and reload flow through the History panel and uplo
   // 2. Upload dataset A through the modal. The modal itself unmounts the
   // instant the view flips to "active" (same React commit as the upload
   // hook's own "success" state, since persistence is synchronous
-  // in-memory before the async IndexedDB write), so the assertion here is
-  // on the results view appearing, not on an intermediate status banner.
+  // in-memory before the async IndexedDB write). As of Phase 7 Milestone
+  // 7.3, the center viewport (`MainViewport`) shows real per-section
+  // content, so "processing complete" is asserted via the default
+  // Overview section's real heading.
   await page.locator('input[type="file"]').setInputFiles(DATASET_A)
   await expect(
-    page.locator('dd[title="lakeside_orders_sample.csv"]'),
+    page.getByRole('heading', { name: 'Dataset overview' }),
   ).toBeVisible({ timeout: 15_000 })
   // Modal should be gone once results show.
   await expect(page.getByRole('dialog', { name: /upload/i })).toBeHidden()
 
   // 3. Open History, use "New dataset" to upload dataset B.
   await page.getByRole('button', { name: /^History/ }).click()
-  await expect(page.getByRole('dialog', { name: 'Dataset history' })).toBeVisible()
-  await page.getByRole('button', { name: 'New dataset' }).click()
+  const historyDialog = page.getByRole('dialog', { name: 'Dataset history' })
+  await expect(historyDialog).toBeVisible()
+  // Scoped to the History panel's own "New dataset" button — the sidebar's
+  // "Upload new dataset" footer button (Milestone 7.2) also matches
+  // `getByRole('button', { name: 'New dataset' })` by substring otherwise.
+  await historyDialog.getByRole('button', { name: 'New dataset' }).click()
   await expect(page.getByRole('dialog', { name: /upload/i })).toBeVisible()
 
   await page.locator('input[type="file"]').setInputFiles(DATASET_B)
   await expect(
-    page.locator('dd[title="dataset-b.csv"]'),
+    page.getByRole('heading', { name: 'Dataset overview' }),
   ).toBeVisible({ timeout: 15_000 })
 
   // 4. History now lists both datasets.
   await page.getByRole('button', { name: /^History/ }).click()
-  const historyDialog = page.getByRole('dialog', { name: 'Dataset history' })
   await expect(historyDialog).toBeVisible()
   await expect(historyDialog.getByText('lakeside_orders_sample.csv')).toBeVisible()
   await expect(historyDialog.getByText('dataset-b.csv')).toBeVisible()
 
-  // 5. Click dataset A: it must render A's data (not B's) immediately,
+  // 5. Click dataset A: it must become the active dataset (not B) immediately,
   // with no parse/network delay (hydration is synchronous from IndexedDB).
+  // "Which dataset is active" is asserted via the History row's own
+  // `aria-current` — set from the same `activeDatasetId` App.tsx derives,
+  // independent of `MainViewport`.
   const clickedAt = Date.now()
   await historyDialog.getByText('lakeside_orders_sample.csv').click()
-  await expect(page.locator('dd[title="lakeside_orders_sample.csv"]')).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Dataset overview' }),
+  ).toBeVisible()
   const elapsedMs = Date.now() - clickedAt
   expect(elapsedMs).toBeLessThan(2000)
-  await expect(page.locator('dd[title="dataset-b.csv"]')).toHaveCount(0)
+
+  await page.getByRole('button', { name: /^History/ }).click()
+  await expect(historyDialog).toBeVisible()
+  await expect(
+    historyDialog.getByRole('button', { name: /^lakeside_orders_sample\.csv/ }),
+  ).toHaveAttribute('aria-current', 'true')
+  await expect(
+    historyDialog.getByRole('button', { name: /^dataset-b\.csv/ }),
+  ).not.toHaveAttribute('aria-current', 'true')
+  await page.keyboard.press('Escape')
 
   // 6. Delete dataset B (currently viewing A) — history narrows to one,
   // no modal since a dataset remains.
@@ -81,7 +100,7 @@ test('upload, switch, delete, and reload flow through the History panel and uplo
   await page.reload()
   await expect(page.getByRole('dialog', { name: /upload/i })).toBeHidden()
   await expect(
-    page.locator('dd[title="lakeside_orders_sample.csv"]'),
+    page.getByRole('heading', { name: 'Dataset overview' }),
   ).toBeVisible({ timeout: 15_000 })
 
   // 8. Delete the last remaining dataset: History auto-collapses and the

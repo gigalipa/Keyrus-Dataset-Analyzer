@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { AppShell } from './components/layout/AppShell'
 import { UploadModal } from './components/upload/UploadModal'
-import { ResultsView } from './components/results/ResultsView'
 import { HistoryPanel } from './components/history/HistoryPanel'
+import { MainViewport } from './components/layout/MainViewport'
+import { LoadingOverlay } from './components/layout/LoadingOverlay'
 import { useDatasetSession } from './hooks/useDatasetSession'
+import { DEFAULT_SECTION, type AppSection } from './components/layout/sections'
 
 function App() {
   const {
@@ -20,12 +23,26 @@ function App() {
     cancelUpload,
     canCancelUpload,
     removeDataset,
+    persistDataDictionary,
   } = useDatasetSession()
+
+  // Transient nav state — which of the 8 sidebar sections is active. Not
+  // persisted (unlike dataset state): a page reload always lands back on
+  // the default section. See Sidebar.tsx / sections.ts (Phase 7, Milestone
+  // 7.2). Its value is meaningless while no dataset is active.
+  const [activeSection, setActiveSection] = useState<AppSection>(DEFAULT_SECTION)
 
   const activeDatasetId = view.kind === 'active' ? view.datasetId : null
 
   return (
-    <AppShell historyCount={history.length} onOpenHistory={openHistory}>
+    <AppShell
+      historyCount={history.length}
+      onOpenHistory={openHistory}
+      hasActiveDataset={view.kind === 'active'}
+      activeSection={activeSection}
+      onSelectSection={setActiveSection}
+      onStartNewDataset={startNewDataset}
+    >
       <div className="flex flex-col gap-6">
         {persistError && (
           <div
@@ -37,16 +54,21 @@ function App() {
           </div>
         )}
 
-        {view.kind === 'loading' && (
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Loading...
-          </p>
-        )}
-
         {view.kind === 'active' && (
-          <ResultsView analysis={view.analysis} file={view.file} />
+          <MainViewport
+            activeSection={activeSection}
+            datasetId={view.datasetId}
+            analysis={view.analysis}
+            file={view.file}
+            llmOutputs={view.llmOutputs}
+            onDictionaryGenerated={persistDataDictionary}
+          />
         )}
       </div>
+
+      {view.kind === 'loading' && (
+        <LoadingOverlay statusText="Loading your workspace…" />
+      )}
 
       {view.kind === 'upload' && (
         <UploadModal

@@ -11,6 +11,20 @@ interface DataDictionaryPanelProps {
   /** Optional dataset/file name, passed through to the prompt for context. */
   datasetName?: string
   /**
+   * A dictionary already generated for this dataset in a previous session or
+   * before a dataset switch (`PersistedDataset.llmOutputs.dataDictionary`,
+   * via `useDatasetSession`). When present, this panel seeds itself from it
+   * instead of calling the LLM again — see the Phase 7 bug-fix note on the
+   * auto-trigger effect below.
+   */
+  persistedDictionary?: InsightGroup | null
+  /**
+   * Fired once, right after a *fresh* generation (not a seed) succeeds, so
+   * the caller can persist it for next time. Deliberately separate from
+   * `onDataChange`, which also fires for seeded data.
+   */
+  onGenerated?: (data: InsightGroup) => void
+  /**
    * Notified whenever this panel's generated dictionary changes, so
    * `ResultsView` can include it in the Milestone 5.3 downloadable Markdown
    * report without this panel needing to know anything about reports.
@@ -38,36 +52,65 @@ interface DataDictionaryPanelProps {
 export function DataDictionaryPanel({
   analysis,
   datasetName,
+  persistedDictionary,
+  onGenerated,
   onDataChange,
 }: DataDictionaryPanelProps) {
-  const { status, data, error, run } = useLlmRequest<InsightGroup>()
+  const { status, data, error, run, seed } = useLlmRequest<InsightGroup>()
   const [activeTag, setActiveTag] = useState<string | null>(null)
 
   const columnCount = analysis.columns.length
 
+  // Marked `true` only while a fresh `run(...)` is in flight/just resolved,
+  // so the `onGenerated` effect below can tell "just generated for real"
+  // apart from "just seeded from a persisted result" — both land on
+  // `status === 'success'`, but only the former should be persisted again.
+  const generatingRef = useRef(false)
+
   const generate = () => {
     setActiveTag(null)
+    generatingRef.current = true
     void run((signal) =>
       generateDataDictionary({ analysis, datasetName, signal }),
     )
   }
 
-  // Auto-trigger generation once per distinct `analysis` (new dataset),
-  // instead of requiring a manual click. Guarded by a ref (rather than
-  // relying on `status`) so this doesn't re-fire on every render and doesn't
-  // fight with a manual "Regenerate" click's own `run` call.
+  // Once per distinct `analysis` (new dataset — this component is also
+  // `key`ed by dataset id at the call site, so "new dataset" and "new mount"
+  // coincide): seed from an already-generated result if one was persisted
+  // for this dataset, otherwise auto-trigger generation. Guarded by a ref
+  // (rather than relying on `status`) so this doesn't re-fire on every
+  // render and doesn't fight with a manual "Regenerate" click's own `run`
+  // call.
+  //
+  // Bug fix (Phase 7 live testing): this used to unconditionally call
+  // `generate()` on every mount, which — combined with `useDatasetSession`
+  // building a brand-new `AnalysisResult` object on every dataset switch —
+  // meant switching between two already-analyzed datasets silently
+  // re-ran the LLM call every time, burning API calls for no reason and
+  // discarding the previous result. `persistedDictionary` (sourced from
+  // `PersistedDataset.llmOutputs.dataDictionary`) is what actually survives
+  // a switch/reload, so it — not local component state — is the source of
+  // truth for "has this dataset already been documented".
   const autoTriggeredForRef = useRef<StructuralAnalysis | null>(null)
   useEffect(() => {
     if (columnCount === 0) return
     if (autoTriggeredForRef.current === analysis) return
     autoTriggeredForRef.current = analysis
     setActiveTag(null)
+
+    if (persistedDictionary) {
+      seed(persistedDictionary)
+      return
+    }
+
+    generatingRef.current = true
     void run((signal) =>
       generateDataDictionary({ analysis, datasetName, signal }),
     )
     // Re-run only when the underlying analysis object identity changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [analysis, columnCount])
+  }, [analysis, columnCount, persistedDictionary])
 
   // Notify the parent (for the downloadable report) from the hook's own
   // reactive `status`/`data` rather than a `run(...).then(...)` chain — the
@@ -75,10 +118,16 @@ export function DataDictionaryPanel({
   // request too, which would incorrectly report "no dictionary" over a
   // still-valid in-flight regeneration. `status === 'success'` is only ever
   // true for the current, non-stale request (guarded inside `useLlmRequest`
-  // via its own request-id check), so this can't fire out of order.
+  // via its own request-id check), so this can't fire out of order — true
+  // whether the success came from a real generation or a seed.
   useEffect(() => {
-    if (status === 'success') onDataChange?.(data)
-  }, [status, data, onDataChange])
+    if (status !== 'success') return
+    onDataChange?.(data)
+    if (generatingRef.current && data) {
+      generatingRef.current = false
+      onGenerated?.(data)
+    }
+  }, [status, data, onDataChange, onGenerated])
 
   const allTags = useMemo(() => collectSortedTags(data?.items ?? []), [data])
 

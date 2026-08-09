@@ -228,6 +228,14 @@ assessment.
 **Checkpoint: Yes — first user-visible layout change of this batch.** Replaces Phase 5's entire navigation
 model; confirm before Phase 8-10 build real content on top of it.
 
+**Execution note (deviation from plan):** ran all three milestones sequentially rather than parallelizing
+7.1/7.2 — each needed live Playwright verification against the real, wired-up shell, and both touch
+`AppShell.tsx`, so parallel dispatch risked conflicting edits without actually saving time. Also,
+`ResultsView.tsx`/`ResultsTabNav.tsx` (Phase 5's scroll-spy model) were deleted outright by Milestone 7.3
+rather than left dormant, since nothing referenced them anymore. All three milestones verified independently
+(lint/tsc/build/Playwright re-run by the orchestrator, not just taken on the subagents' word) — Phase 7 is
+complete and confirmed.
+
 ### Phase 8 — Automated Sequential LLM Pipeline & Loading Experience
 **Mode:** sequential
 **Agents:**

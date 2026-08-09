@@ -36,14 +36,31 @@ import {
   deleteDataset as deleteDatasetRecord,
   getDataset,
   listDatasets,
+  updateDataset,
 } from '../lib/storage/db'
+import type { InsightGroup } from '../lib/llm/schema'
 import { useFileUpload } from './useFileUpload'
 
 /** What the center viewport should currently show. */
 export type DatasetView =
   | { kind: 'loading' }
   | { kind: 'upload' }
-  | { kind: 'active'; datasetId: string; file: File; analysis: AnalysisResult }
+  | {
+      kind: 'active'
+      datasetId: string
+      file: File
+      analysis: AnalysisResult
+      /**
+       * The dataset record's persisted LLM outputs — carried through so
+       * components (e.g. `DataDictionaryPanel`) can seed themselves from an
+       * already-generated result on mount instead of unconditionally
+       * regenerating, which was producing a real bug: switching between two
+       * previously-analyzed datasets re-ran the data dictionary's LLM call
+       * every single time, because each switch built a brand-new
+       * `AnalysisResult` object with no memory of a prior generation.
+       */
+      llmOutputs: PersistedDataset['llmOutputs']
+    }
 
 type ActiveDatasetView = Extract<DatasetView, { kind: 'active' }>
 
@@ -75,7 +92,13 @@ function makeSyntheticFile(fileName: string, fileSizeMB: number): File {
 async function hydrateRecordIntoView(record: PersistedDataset): Promise<ActiveDatasetView> {
   const analysis = hydrateAnalysis(record)
   const file = makeSyntheticFile(record.fileName, record.analysis.structural.stats.fileSizeMB)
-  return { kind: 'active', datasetId: record.id, file, analysis }
+  return {
+    kind: 'active',
+    datasetId: record.id,
+    file,
+    analysis,
+    llmOutputs: record.llmOutputs,
+  }
 }
 
 export function useDatasetSession() {
@@ -119,7 +142,13 @@ export function useDatasetSession() {
       // Show the result immediately using the in-memory analysis (no
       // reload/rehydrate round trip needed) — persistence happens
       // alongside, not as a precondition for the user seeing their data.
-      setView({ kind: 'active', datasetId: id, file, analysis })
+      setView({
+        kind: 'active',
+        datasetId: id,
+        file,
+        analysis,
+        llmOutputs: record.llmOutputs,
+      })
       setPersistError(null)
 
       void (async () => {
@@ -203,6 +232,34 @@ export function useDatasetSession() {
     resetUpload()
   }, [resetUpload, preUploadView])
 
+  /**
+   * Persists a freshly-generated data dictionary to the active dataset's
+   * IndexedDB record (`llmOutputs.dataDictionary`) and mirrors it into local
+   * `view` state, so a later switch away and back to this same dataset can
+   * seed `DataDictionaryPanel` from storage instead of regenerating it.
+   */
+  const persistDataDictionary = useCallback((data: InsightGroup) => {
+    setView((current) => {
+      if (current.kind !== 'active') return current
+      const nextLlmOutputs: PersistedDataset['llmOutputs'] = {
+        ...current.llmOutputs,
+        dataDictionary: { status: 'done', data },
+      }
+
+      void updateDataset(current.datasetId, {
+        llmOutputs: nextLlmOutputs,
+      }).catch((error) => {
+        setPersistError(
+          error instanceof Error
+            ? error.message
+            : 'Could not save the data dictionary to History.',
+        )
+      })
+
+      return { ...current, llmOutputs: nextLlmOutputs }
+    })
+  }, [])
+
   const removeDataset = useCallback(
     async (id: string) => {
       await deleteDatasetRecord(id)
@@ -241,5 +298,6 @@ export function useDatasetSession() {
     cancelUpload,
     canCancelUpload: preUploadView !== null,
     removeDataset,
+    persistDataDictionary,
   }
 }
