@@ -1,3 +1,5 @@
+import { formatTimestamp } from '../../utils/formatTimestamp'
+
 interface DataOverviewCardProps {
   /** Uploaded file name. */
   fileName: string
@@ -79,12 +81,4 @@ function formatFileSize(fileSizeMB: number): string {
     return `${Math.round(fileSizeMB * 1024).toLocaleString()} KB`
   }
   return `${fileSizeMB.toFixed(2)} MB`
-}
-
-/** Formats an upload timestamp as a locale-aware date + time string. */
-function formatTimestamp(uploadedAt: number): string {
-  return new Date(uploadedAt).toLocaleString(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  })
 }

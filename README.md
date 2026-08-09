@@ -10,7 +10,8 @@ The app runs entirely in the browser with no backend: client-side parsing and tr
 
 ## Current Status
 
-- **MVP complete, not yet a fully developed product.** Phases 1–5 (Foundation & Upload, Data Ingestion Pipeline, Data Analysis Engine, LLM-Powered Insights, Results Presentation & Polish) are done; see [docs/development-process.md](docs/development-process.md) for the fully checked-off task list. Live MVP testing showed the interface is comprehensive at a data-analysis level but not yet easy to use for non-technical, non-data-educated users — **Phases 6–11**, planned from [docs/beyond-MVP.md](docs/beyond-MVP.md), rework the app into a persistent, dashboard-style tool (local multi-dataset history, an automatic LLM analysis pipeline, a top-bar/sidebar shell, business-facing dashboard views, and a real PDF report) and are the next step before this is a fully developed product, not an afterthought.
+- **MVP complete, not yet a fully developed product.** Phases 1–5 (Foundation & Upload, Data Ingestion Pipeline, Data Analysis Engine, LLM-Powered Insights, Results Presentation & Polish) are done; see [docs/development-process.md](docs/development-process.md) for the fully checked-off task list. Live MVP testing showed the interface is comprehensive at a data-analysis level but not yet easy to use for non-technical, non-data-educated users — **Phases 6–11**, planned from [docs/beyond-MVP.md](docs/beyond-MVP.md), rework the app into a persistent, dashboard-style tool (local multi-dataset history, an automatic LLM analysis pipeline, a top-bar/sidebar shell, business-facing dashboard views, and a real PDF report) and are the next step before this is a fully developed product, not an afterthought. **Phase 6 is now done** — the app persists across reloads via IndexedDB.
+- **The app now remembers your datasets.** Every upload is saved locally (IndexedDB, no server involved) and survives closing the tab. A History panel lists every dataset you've analyzed — switch between them instantly (no re-parsing, no new LLM calls), delete ones you no longer need, or start a new one. Reopen the app and your most recent dataset loads automatically; only a brand-new browser profile with nothing saved yet shows the "Upload a dataset" prompt.
 - **Source code:** Vite + React + TypeScript + Tailwind v4 app in `src/`, building and linting clean (`npm run build`, `npm run lint`, `npx tsc -b --noEmit`).
 - **The app is now end-to-end functional.** Drop in a CSV/TSV/XLS/XLSX/SQL file and get a real, tabbed assessment:
   - Drag-and-drop (or click-to-browse) upload with extension validation and status feedback, feeding real parsers for all five formats (`src/lib/parsers/`) normalized into Arquero tables.
@@ -43,8 +44,8 @@ All five original goals are met. Development history:
 3. ~~**Phase 3 — Data Analysis Engine**~~ ✅ Done — column/type inference, descriptive statistics with outlier detection, data-quality checks, date detection/normalization.
 4. ~~**Phase 4 — LLM-Powered Insights**~~ ✅ Done — Mistral + Google AI Studio clients, shared structured-output schema, data dictionary/business insights/client questions all generating and rendering real content.
 5. ~~**Phase 5 — Results Presentation & Polish**~~ ✅ Done — real pipeline wired end-to-end, tabbed results UI, loading skeletons, copy-to-clipboard, responsive/keyboard/cross-browser polish, downloadable Markdown report.
-6. **Phase 6 — Persistent Storage & Multi-Dataset History (next):** planned, not yet built — IndexedDB persistence layer, History sidebar, empty-state upload modal.
-7. **Phase 7 — Application Shell Redesign:** planned — top bar, collapsible left sidebar, center-viewport routing.
+6. ~~**Phase 6 — Persistent Storage & Multi-Dataset History**~~ ✅ Done — IndexedDB persistence layer (`src/lib/storage/`), History sidebar with dataset switching and delete, and a conditional "Upload a dataset" modal that only appears when there's nothing saved yet.
+7. **Phase 7 — Application Shell Redesign (next):** planned — top bar, collapsible left sidebar, center-viewport routing.
 8. **Phase 8 — Automated Sequential LLM Pipeline & Loading Experience:** planned — chained-context LLM calls replacing manual "Generate" buttons, stage-by-stage loading overlay, business-facing KPI cards.
 9. **Phase 9 — Business-Facing Views:** planned — Dashboard (Recharts, cross-widget filters), Explanation, filter/sort Business Insights and Questions cards.
 10. **Phase 10 — Data Views Rework:** planned — Overview/Data Dictionary migration, a new transformation-audit-log for Quality, raw-vs-cleaned Datasets comparison with downloads.
@@ -71,19 +72,19 @@ Time actually spent, derived from `git log` timestamps (all commits landed same-
 | AFK Time for lunch and other personal affairs | 12:00 → 13:00 / 14:00 → 16:00 | 3h |
 | **Total, planning through MVP close-out** | 09:42 → 16:34 (+2h pre-work - 3h AFK) | **~5h 52m** |
 
-### Phases 6–11 (beyond-MVP batch) — estimated
+### Phases 6–11 (beyond-MVP batch) — actual vs. estimated
 
-Not yet built; estimated from each phase's scope in [docs/orchestration-plan.md](docs/orchestration-plan.md) relative to the actual MVP phases above (e.g. Phase 8's live-LLM-call complexity is sized against Phase 4's actual 1h 24m; Phase 11's mandatory close-out review is sized against Phase 5's).
+Phase 6 is done, timed for real from `git log`/session timestamps; Phases 7–11 remain estimates, sized from each phase's scope in [docs/orchestration-plan.md](docs/orchestration-plan.md) relative to the actual MVP phases above (e.g. Phase 8's live-LLM-call complexity is sized against Phase 4's actual 1h 24m; Phase 11's mandatory close-out review is sized against Phase 5's).
 
-| Phase | Estimate | Why |
-|---|---|---|
-| 6 — Persistent Storage & Multi-Dataset History | 1.0–1.5h | New but self-contained data layer, similar shape to Phase 2's parser work |
-| 7 — Application Shell Redesign | 1.5–2.0h | Full navigation-model replacement; first user-visible checkpoint |
-| 8 — Automated Sequential LLM Pipeline & Loading Experience | 2.0–2.5h | Highest-risk phase — live chained LLM calls, prompt-context correctness, mandatory checkpoint |
-| 9 — Business-Facing Views | 2.0–2.5h | Four parallel workstreams, one new dependency (Recharts), new dashboard-wide filtering logic |
-| 10 — Data Views Rework | 1.5–2.0h | Mostly migration of existing components, plus new audit-trail core logic |
-| 11 — PDF Report & Final Polish | 2.0–2.5h | New PDF pipeline (jsPDF + html2canvas) plus full responsive/keyboard/cross-browser re-verification and a mandatory close-out code review, mirroring Phase 5's cost |
-| **Total, Phases 6–11** | **~10–13h** | |
+| Phase | Actual | Estimate | Why |
+|---|---|---|---|
+| 6 — Persistent Storage & Multi-Dataset History | **23m** (05:10 → 05:33) | — | Done — came in well under the original 1.0–1.5h estimate; a self-contained data layer, similar shape to Phase 2's parser work |
+| 7 — Application Shell Redesign | — | 1.5–2.0h | Full navigation-model replacement; first user-visible checkpoint |
+| 8 — Automated Sequential LLM Pipeline & Loading Experience | — | 2.0–2.5h | Highest-risk phase — live chained LLM calls, prompt-context correctness, mandatory checkpoint |
+| 9 — Business-Facing Views | — | 2.0–2.5h | Four parallel workstreams, one new dependency (Recharts), new dashboard-wide filtering logic |
+| 10 — Data Views Rework | — | 1.5–2.0h | Mostly migration of existing components, plus new audit-trail core logic |
+| 11 — PDF Report & Final Polish | — | 2.0–2.5h | New PDF pipeline (jsPDF + html2canvas) plus full responsive/keyboard/cross-browser re-verification and a mandatory close-out code review, mirroring Phase 5's cost |
+| **Total, Phases 6–11** | **23m so far** | **~9–12h remaining** | |
 
 **Projected grand total (planning → Phases 1–11 complete): ~20–23h.**
 

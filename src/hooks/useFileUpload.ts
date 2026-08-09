@@ -31,8 +31,18 @@ const INITIAL_STATE: UploadState = {
  * parse/analysis result (from a superseded file selection, or one that
  * resolves after `reset()`) overwriting newer state — the same pattern
  * `useLlmRequest` uses for its own async work.
+ *
+ * `onSuccess`, added in Phase 6 Milestone 6.2, is an optional callback fired
+ * synchronously right after a successful parse+analysis is committed to
+ * state (and guarded by the same stale-request check) — this is how
+ * `useDatasetSession` persists a freshly uploaded dataset to IndexedDB
+ * without this hook needing to know anything about storage. Kept as a
+ * plain callback rather than baking persistence in here, so parsing/analysis
+ * and persistence stay independently testable.
  */
-export function useFileUpload() {
+export function useFileUpload(
+  onSuccess?: (analysis: AnalysisResult, file: File) => void,
+) {
   const [state, setState] = useState<UploadState>(INITIAL_STATE)
   const requestIdRef = useRef(0)
 
@@ -84,6 +94,7 @@ export function useFileUpload() {
         }
 
         setState({ status: 'success', file, errorMessage: null, analysis })
+        onSuccess?.(analysis, file)
       } catch (error) {
         if (requestIdRef.current !== requestId) return
 
@@ -102,7 +113,7 @@ export function useFileUpload() {
         })
       }
     })()
-  }, [])
+  }, [onSuccess])
 
   const reset = useCallback(() => {
     requestIdRef.current++

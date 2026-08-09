@@ -4,6 +4,8 @@ import { Footer } from './Footer'
 
 interface AppShellProps {
   children: ReactNode
+  historyCount?: number
+  onOpenHistory?: () => void
 }
 
 /**
@@ -11,10 +13,10 @@ interface AppShellProps {
  * Stacks full-height on mobile (≥320px) and centers a constrained-width
  * content column on larger viewports (up to and beyond 1200px).
  */
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ children, historyCount, onOpenHistory }: AppShellProps) {
   return (
     <div className="flex min-h-svh flex-col bg-slate-50 dark:bg-slate-900">
-      <Header />
+      <Header historyCount={historyCount} onOpenHistory={onOpenHistory} />
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
         {children}
       </main>
