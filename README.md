@@ -46,6 +46,19 @@ npm run lint          # eslint
 npx tsc -b --noEmit   # type-check only
 ```
 
+## Quick Tutorial
+
+1. **Upload your dataset** — drag and drop a CSV, TSV, XLS, XLSX, or SQL export onto the upload zone.
+   ![Upload a dataset](docs/screenshots/1-Update%20your%20dataset.png)
+
+2. **Wait a few seconds** while the app understands the data, generates KPIs, explains business insights, and prepares client questions.
+   ![Analysis in progress](docs/screenshots/2-Wait.png)
+
+3. **Review the results** — a live dashboard with KPIs, notices, data dictionary, quality checks, business insights, and downloadable Markdown/PDF reports.
+   ![Dashboard with results](docs/screenshots/3-Review%20the%20data.png)
+
+4. **Upload as many datasets as you need** and revisit any of them from your history panel.
+   ![Dataset history panel](docs/screenshots/4-Upload%20as%20many%20datasets%20as%20you%20need%20and%20check%20them%20in%20your%20history.png)
 ## Current Status
 
 - **Planning & process artifacts:**
