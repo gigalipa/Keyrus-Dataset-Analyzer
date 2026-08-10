@@ -1,5 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { SECTION_GROUPS, type AppSection } from './sections'
+import type { PersistedDataset } from '../../types/persistedDataset'
+import type { AnalysisResult } from '../../types/upload'
+import { generateAndDownloadPdfReport } from '../../lib/report/pdfReport'
 
 interface SidebarProps {
   activeSection: AppSection
@@ -9,6 +12,14 @@ interface SidebarProps {
   onStartNewDataset?: () => void
   /** Phase 8, Milestone 8.1's single re-run affordance — re-invokes the full LLM pipeline for the active dataset from scratch, replacing the old per-panel "Regenerate" buttons. */
   onRerunAnalysis?: () => void
+  /** The active dataset's persisted LLM outputs — feeds the PDF report's Explanation/Business Insights/Client Questions/Data Dictionary sections (Phase 11, Milestone 11.1). `undefined` when no dataset is active. */
+  llmOutputs?: PersistedDataset['llmOutputs']
+  /** The active dataset's Phase 3 analysis — feeds the PDF report's Overview/Dashboard/Data Quality sections. `undefined` when no dataset is active. */
+  analysis?: AnalysisResult
+  /** The active dataset's `File` — used for the PDF's file name. `undefined` when no dataset is active. */
+  file?: File
+  /** The active dataset's cleaning audit trail slot — folded into the PDF's Data Quality section. `undefined` when no dataset is active. */
+  cleaning?: PersistedDataset['cleaning']
 }
 
 /** Simple hamburger/close glyph for the mobile toggle — inline SVG, no icon library, matching `TopBar`'s `HistoryIcon` convention. */
@@ -53,20 +64,57 @@ export function Sidebar({
   hasActiveDataset = false,
   onStartNewDataset,
   onRerunAnalysis,
+  llmOutputs,
+  analysis,
+  file,
+  cleaning,
 }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [pdfState, setPdfState] = useState<'idle' | 'generating' | 'error'>('idle')
+
+  // Milestone 11.2 fix: every other dialog in this app (`UploadModal`,
+  // `HistoryPanel`, `TopBar`'s KPI modal) dismisses on Escape — this mobile
+  // "Sections" overlay didn't, an inconsistency found during cross-cutting
+  // keyboard-navigation re-verification. Only listens while open.
+  useEffect(() => {
+    if (!mobileOpen) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileOpen(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [mobileOpen])
 
   const handleSelect = (section: AppSection) => {
     onSelectSection(section)
     setMobileOpen(false)
   }
 
-  const handleDownloadPdfStub = () => {
-    // Real PDF generation is Phase 11 — this is a deliberate, honest stub
-    // for Milestone 7.2. Left clickable (not disabled) so the affordance
-    // reads as "present but not yet implemented" rather than broken, with a
-    // clear console signal for anyone testing the flow before Phase 11.
-    console.log('[Sidebar] Download PDF Report is not implemented yet (Phase 11).')
+  /**
+   * Real PDF generation (Phase 11, Milestone 11.1), replacing the earlier
+   * `handleDownloadPdfStub`. No-ops the same way `hasActiveDataset` already
+   * gates the footer's visibility: `analysis`/`file`/`llmOutputs` are only
+   * ever missing when no dataset is active, in which case this button isn't
+   * rendered at all — the guard here is defense-in-depth, not a real UI
+   * path.
+   *
+   * Known minor edge case: `analysis`/`file`/`cleaning` are captured by
+   * closure at click-time, so a dataset switch mid-generation can't corrupt
+   * the PDF's *content* — but `setPdfState` below could still land after the
+   * switch and misleadingly reflect the new dataset's button state. Low
+   * impact (single string, self-corrects on the next click); not worth a
+   * cancellation mechanism for this.
+   */
+  const handleDownloadPdf = async () => {
+    if (!analysis || !file || !llmOutputs) return
+    setPdfState('generating')
+    try {
+      await generateAndDownloadPdfReport(analysis, file, llmOutputs, cleaning)
+      setPdfState('idle')
+    } catch (error) {
+      console.error('[Sidebar] Failed to generate PDF report:', error)
+      setPdfState('error')
+    }
   }
 
   const nav = (
@@ -106,12 +154,18 @@ export function Sidebar({
     <div className="flex flex-col gap-2 border-t border-slate-200 p-4 dark:border-slate-800">
       <button
         type="button"
-        onClick={handleDownloadPdfStub}
-        title="Coming soon — PDF report generation lands in a later phase"
-        className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+        onClick={() => void handleDownloadPdf()}
+        disabled={pdfState === 'generating'}
+        title="Downloads a client-presentable PDF covering the dashboard, explanation, business insights, questions, and data quality summary"
+        className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800"
       >
-        Download PDF Report
+        {pdfState === 'generating' ? 'Generating PDF...' : 'Download PDF Report'}
       </button>
+      {pdfState === 'error' && (
+        <p role="alert" className="text-xs text-red-600 dark:text-red-400">
+          Couldn't generate the PDF report. Try again.
+        </p>
+      )}
       <button
         type="button"
         onClick={onRerunAnalysis}

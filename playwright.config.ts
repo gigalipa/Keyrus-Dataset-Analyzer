@@ -32,5 +32,19 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+    // Phase 11, Milestone 11.2: real Chrome/Edge/Safari installs aren't
+    // available for automated testing in this environment, so these two use
+    // Playwright's other browser *engines* as the closest available proxy —
+    // Chromium (above) covers Chrome and Edge (both Chromium-based),
+    // Firefox covers Firefox directly, and WebKit is the closest available
+    // proxy for Safari (not literal Safari). See NOTES.md for the caveat.
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+    },
+    {
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] },
+    },
   ],
 })

@@ -90,7 +90,13 @@ test('Dashboard renders live KPIs/notices/charts/quick-insights, and the filter 
     .locator('..')
   const trendCard = chartsSection.locator('h4', { hasText: /^Orders over time/ }).locator('..')
   await expect(trendCard.locator('.recharts-line-curve')).toBeVisible()
+  // `ResponsiveContainer` needs a ResizeObserver tick before Recharts draws
+  // any bars, so wait for at least one to exist before counting — a plain
+  // `.count()` here would race that and could read 0 (test flake, not a
+  // product bug: `chooseDashboardCharts` itself is a pure, dataset-derived
+  // function with no timing dependency).
   const barsBefore = breakdownCard.locator('.recharts-rectangle')
+  await expect(barsBefore.first()).toBeVisible()
   const barCountBefore = await barsBefore.count()
   expect(barCountBefore).toBeGreaterThanOrEqual(2) // multiple categories represented, unfiltered
 

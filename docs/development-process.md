@@ -290,14 +290,14 @@ Phases 1-5 delivered the MVP against `docs/project-description.md` and are compl
 **Definition of done:** The left sidebar's "Download PDF Report" button produces a complete, real PDF covering every generated section; the app re-passes the same responsive/keyboard/cross-browser bar Phase 5 set, now against the new shell.
 
 #### Milestone 11.1 — PDF report generation
-- [ ] **Task:** Integrate jsPDF + html2canvas — *why:* chosen client-side, no-backend approach for real PDF output (vs. Phase 5's Markdown-only download) — *done when:* both are added as dependencies and a minimal proof renders one section of the app to a downloadable PDF page
-- [ ] **Task:** Build the full report generator — *why:* the deliverable itself — *done when:* clicking "Download PDF Report" produces a multi-page PDF covering Dashboard KPIs/charts, Explanation, Business Insights, Questions, and the Data Quality summary, in a client-presentable layout (not a raw screenshot dump)
-- [ ] **Task:** Wire the sidebar footer button for real — *why:* completes Milestone 7.2's stub — *done when:* the "Download PDF Report" button (visible once the pipeline completes, per the user path) triggers the generator above
+- [X] **Task:** Integrate jsPDF + html2canvas — *why:* chosen client-side, no-backend approach for real PDF output (vs. Phase 5's Markdown-only download) — *done when:* both are added as dependencies and a minimal proof renders one section of the app to a downloadable PDF page
+- [X] **Task:** Build the full report generator — *why:* the deliverable itself — *done when:* clicking "Download PDF Report" produces a multi-page PDF covering Dashboard KPIs/charts, Explanation, Business Insights, Questions, and the Data Quality summary, in a client-presentable layout (not a raw screenshot dump)
+- [X] **Task:** Wire the sidebar footer button for real — *why:* completes Milestone 7.2's stub — *done when:* the "Download PDF Report" button (visible once the pipeline completes, per the user path) triggers the generator above
 
 #### Milestone 11.2 — Cross-cutting re-verification
-- [ ] **Task:** Re-verify responsive breakpoints — *why:* the entire layout model changed (tab bar → top bar + sidebar + viewport); Phase 5's pass no longer covers it — *done when:* the new shell (including collapsible sidebar and History panel) is confirmed usable at <640px, 640-1024px, and >1024px
-- [ ] **Task:** Re-verify keyboard navigation — *why:* same reasoning — new interactive elements (History panel, sidebar nav, dashboard filters, card sort/filter controls) didn't exist during Phase 5's pass — *done when:* Tab/Shift+Tab/Enter reach every new interactive element in a sensible order
-- [ ] **Task:** Re-verify cross-browser compatibility — *why:* same reasoning, per the resolved browser-support decision — *done when:* the rebuilt app is manually confirmed working on latest Chrome, Firefox, Safari, and Edge
+- [X] **Task:** Re-verify responsive breakpoints — *why:* the entire layout model changed (tab bar → top bar + sidebar + viewport); Phase 5's pass no longer covers it — *done when:* the new shell (including collapsible sidebar and History panel) is confirmed usable at <640px, 640-1024px, and >1024px
+- [X] **Task:** Re-verify keyboard navigation — *why:* same reasoning — new interactive elements (History panel, sidebar nav, dashboard filters, card sort/filter controls) didn't exist during Phase 5's pass — *done when:* Tab/Shift+Tab/Enter reach every new interactive element in a sensible order
+- [X] **Task:** Re-verify cross-browser compatibility — *why:* same reasoning, per the resolved browser-support decision — *done when:* the rebuilt app is manually confirmed working on latest Chrome, Firefox, Safari, and Edge (engine-level proxy: Chromium/Firefox/WebKit — see NOTES.md caveat, no real Safari/Edge installs available in this environment)
 
 **Checkpoint: Yes — mandatory, end of this roadmap batch.** Same pattern as the MVP's Phase 5 checkpoint: run a full code-review pass across the diff before considering this batch closed.
 

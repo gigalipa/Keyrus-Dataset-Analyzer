@@ -94,6 +94,9 @@ function App() {
       onOpenHistory={openHistory}
       hasActiveDataset={view.kind === 'active'}
       llmOutputs={view.kind === 'active' ? view.llmOutputs : undefined}
+      analysis={view.kind === 'active' ? view.analysis : undefined}
+      file={view.kind === 'active' ? view.file : undefined}
+      cleaning={view.kind === 'active' ? view.cleaning : undefined}
       activeSection={activeSection}
       onSelectSection={setActiveSection}
       onStartNewDataset={startNewDataset}

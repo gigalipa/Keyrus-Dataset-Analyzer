@@ -468,8 +468,38 @@ just replaced with real content — fixed directly (not left as a false "known f
 ## Sign-off
 
 Per the skill's Step 5, live agent dispatch (Step 6) does not start until this plan is reviewed and confirmed.
-Phases 1-5 were dispatched and completed in an earlier session. **Phases 6-10 are dispatched, built, and
-independently verified.** Phase 9's work was verified but sat uncommitted alongside Phase 10's reconciliation
-discussion — both phases' changes are committed together in one commit, since they ended up intermixed in
-shared files (`MainViewport.tsx` in particular) by the time Phase 10 finished. **Phase 11 (PDF Report & Final
-Polish) has not yet started.**
+Phases 1-5 were dispatched and completed in an earlier session. Phases 6-10 were dispatched, built, and
+independently verified in an earlier session; Phase 9's work was verified but sat uncommitted alongside Phase
+10's reconciliation discussion — both phases' changes were committed together in one commit, since they ended
+up intermixed in shared files (`MainViewport.tsx` in particular) by the time Phase 10 finished. **Phase 11
+(PDF Report & Final Polish) is now also dispatched, built, and independently verified** — see its "Execution
+note" below. All 11 phases of the roadmap are complete as of this session.
+
+### Execution note — Phase 11
+
+Dispatched sequentially exactly as planned: `pdf-report-agent` (Milestone 11.1) first, then
+`final-polish-agent` (Milestone 11.2) after it, so polish coverage included the finished PDF button rather
+than its earlier console-log stub. Before dispatching, the orchestrator found and fixed one unrelated test
+flake in `dashboard.spec.ts` (a non-polling Recharts bar-count assertion racing `ResponsiveContainer`'s
+`ResizeObserver` tick — not a product bug) surfaced by a leftover background verification run from Phase 10.
+
+`pdf-report-agent` resolved the "not a raw screenshot dump" constraint by splitting the report into real
+jsPDF text/vector content (reusing `dashboardMetrics.ts`'s pure KPI/notice/chart functions run unfiltered,
+mirroring `markdownReport.ts`'s existing content-assembly pattern) plus `html2canvas`-captured PNGs for only
+the two Dashboard chart visuals, rendered off-screen in a detached host to sidestep `MainViewport.tsx`'s
+`display:none`-when-inactive section mounting. Verified independently (lint/tsc/build/vitest, plus a live,
+content-asserting Playwright e2e run reviewed and re-run by the orchestrator, not just taken on the
+subagent's word) before proceeding.
+
+`final-polish-agent` initially stopped mid-task waiting on its own backgrounded Chromium e2e run without
+checking its output — resumed via `SendMessage` with an explicit instruction to check the output directly
+rather than wait on a notification a subagent doesn't reliably receive. It went on to find and fix two real
+bugs during re-verification (not just confirm the status quo): a missing Escape-to-close on the mobile
+"Sections" nav overlay, and an intermittent WebKit-only file-read `NotFoundError` (mitigated via a bounded
+retry, documented honestly as a reduction not an elimination). Cross-browser coverage is an explicit,
+documented engine-level proxy (Chromium/Firefox/WebKit standing in for Chrome/Edge/Firefox/Safari — no real
+branded-browser installs available in this environment), not literal branded-browser testing — recorded as a
+caveat in `README.md`/`NOTES.md` rather than overstated. Verified independently by the orchestrator: full
+lint/tsc/build/vitest re-run, plus the new `responsive-and-keyboard.spec.ts` and `sidebar.spec.ts` re-run live
+on both the Chromium and WebKit projects (WebKit passing clean on the first try, consistent with the
+documented ~85-90% post-fix success rate).

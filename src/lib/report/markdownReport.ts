@@ -7,10 +7,9 @@
  * been generated yet are noted as "not generated" rather than omitted
  * silently or causing a crash.
  *
- * PRODUCT DECISION (do not relitigate): Markdown-only for now, no PDF
- * library. A fully-formatted PDF export remains the intended finished-product
- * goal for a future iteration — this Markdown export is a deliberate
- * intermediate step, not the final intended state of "download report".
+ * A fully-formatted PDF export (Phase 11, Milestone 11.1 — `pdfReport.ts`)
+ * now also exists alongside this Markdown export; both remain available as
+ * separate download options rather than one replacing the other.
  */
 import type { AnalysisResult } from '../../types/upload'
 import type { InsightGroup, InsightItem } from '../llm/schema'
