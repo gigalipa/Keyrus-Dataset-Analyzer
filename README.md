@@ -21,7 +21,7 @@ The app runs entirely in the browser with no backend: client-side parsing and tr
 ```bash
 # 1. Clone the repo and install dependencies
 git clone https://github.com/gigalipa/Keyrus-Dataset-Analyzer
-cd lakeside-keyrus
+cd Keyrus-Dataset-Analyzer
 npm install
 
 # 2. Configure API keys
