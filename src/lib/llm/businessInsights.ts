@@ -52,7 +52,16 @@ const TASK_INSTRUCTIONS: Record<'kpi' | 'insight' | 'recommendation', string> =
       'from this dataset. Each KPI should be a concrete, measurable metric',
       '(e.g. total revenue, average order value, on-time delivery rate) that',
       'is plausible given the columns and statistics provided — do not invent',
-      'metrics the data cannot support.',
+      'metrics the data cannot support. This means the metric must fit the',
+      "dataset's actual domain (see above) — e.g. a tourism/visitor dataset",
+      'should surface tourism metrics (average stay length, visitor volume',
+      'by destination, occupancy rate), not repurposed e-commerce ones.',
+      '',
+      'Never propose a sum of a per-entity attribute that has no real total',
+      '— e.g. "Total age", "Total customer ID", "Total rating", or "Total',
+      'zip code" are all meaningless and must never appear. If a column like',
+      'age or rating is worth surfacing, do so as an average, a range, or a',
+      'breakdown, never as a sum.',
       '',
       'Every single KPI MUST set `metadata` with a `value` and `unit`, e.g.',
       '`{ "value": 1234.56, "unit": "USD" }` or `{ "value": 92.3, "unit": "%" }`',
@@ -125,13 +134,24 @@ function buildBusinessInsightsSystemPrompt(
  * already-generated data dictionary, condensed, when the pipeline has one
  * available. Manual, standalone calls to this function (e.g. before the
  * pipeline existed) simply omit `dictionary` and get the Phase 4 behavior.
+ *
+ * Tailored per call `type` rather than sending one identical payload to all
+ * three: `TASK_INSTRUCTIONS.kpi` explicitly forbids basing a KPI on
+ * data-profile/quality facts ("Do NOT propose data-profile statistics as
+ * KPIs"), so `qualityHighlights` is pure prompt-token waste for that call
+ * specifically — the insight/recommendation calls genuinely need it
+ * (surfacing and acting on data-quality issues is their whole point), so
+ * they keep it.
  */
 function buildBusinessInsightsUserContent(
+  type: 'kpi' | 'insight' | 'recommendation',
   summary: DatasetAnalysisSummary,
   dictionary?: InsightGroup,
 ): string {
+  const { qualityHighlights, ...rest } = summary
   return formatDatasetContext('Dataset analysis summary', {
-    ...summary,
+    ...rest,
+    ...(type !== 'kpi' ? { qualityHighlights } : {}),
     ...(dictionary
       ? { dataDictionary: condenseInsightGroupForContext(dictionary) }
       : {}),
@@ -162,27 +182,29 @@ export async function generateBusinessInsights(
   summary: DatasetAnalysisSummary,
   options: GenerateBusinessInsightsOptions = {},
 ): Promise<BusinessInsightsResult> {
-  const userContent = buildBusinessInsightsUserContent(summary, options.dictionary)
-
   const [kpis, insights, recommendations] = await Promise.all([
     runStructuredInsightRequest({
       type: 'kpi',
       systemPrompt: buildBusinessInsightsSystemPrompt('kpi'),
-      userContent,
+      userContent: buildBusinessInsightsUserContent('kpi', summary, options.dictionary),
       callProvider: callMistralRawText,
       signal: options.signal,
     }),
     runStructuredInsightRequest({
       type: 'insight',
       systemPrompt: buildBusinessInsightsSystemPrompt('insight'),
-      userContent,
+      userContent: buildBusinessInsightsUserContent('insight', summary, options.dictionary),
       callProvider: callMistralRawText,
       signal: options.signal,
     }),
     runStructuredInsightRequest({
       type: 'recommendation',
       systemPrompt: buildBusinessInsightsSystemPrompt('recommendation'),
-      userContent,
+      userContent: buildBusinessInsightsUserContent(
+        'recommendation',
+        summary,
+        options.dictionary,
+      ),
       callProvider: callMistralRawText,
       signal: options.signal,
     }),

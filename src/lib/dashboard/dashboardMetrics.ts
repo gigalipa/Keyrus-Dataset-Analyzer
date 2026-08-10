@@ -136,16 +136,73 @@ const MEASURE_NAME_HINTS = [
   /qty|quantity/i,
 ]
 
-/** Picks the numeric column most likely to be a meaningful business measure, falling back to the first numeric column. */
+/**
+ * Name patterns for numeric columns whose *sum* has no real business
+ * meaning, even though the column itself is perfectly valid to analyze
+ * other ways (average, distribution). Bug found via live user feedback: a
+ * tourism dataset with an `age` column but nothing matching
+ * `MEASURE_NAME_HINTS` fell through to "just pick the first numeric
+ * column", which happened to be `age`, and the dashboard rendered a "Total
+ * age" KPI/chart — a number with zero statistical meaning (summing a
+ * per-person attribute across unrelated rows isn't a business metric).
+ * Covers per-entity attributes (age, ratings/scores, already-relative
+ * figures like percentages/rates/ratios/index values) and identifiers
+ * (ids, codes, zip/postal codes, geographic coordinates) — none of these
+ * become more meaningful by adding them together.
+ */
+const NON_SUMMABLE_NAME_HINTS = [
+  /\bage\b/i,
+  /\byear\b/i,
+  /rating/i,
+  /\bscore\b/i,
+  /\brank\b/i,
+  /percent|\bpct\b|%/i,
+  /\brate\b/i,
+  /\bratio\b/i,
+  /\bindex\b/i,
+  /\bid\b/i,
+  /zip|postal/i,
+  /latitude|longitude|\blat\b|\blon\b|\blng\b/i,
+]
+
+/**
+ * `\b` word-boundary regexes don't treat `_`/`-` as boundaries (they're
+ * word characters in JS regex), so `\bid\b` misses a real column named
+ * `visitor_id` or `customer-id` — found while manually verifying this
+ * fix. Normalizing separators to spaces first makes every `\b`-based hint
+ * above (and `MEASURE_NAME_HINTS`) match snake_case/kebab-case column
+ * names the same way it already matches plain ones.
+ */
+function normalizeColumnNameForMatching(column: string): string {
+  return column.replace(/[_-]+/g, ' ')
+}
+
+/**
+ * Picks the numeric column most likely to be a meaningful business measure
+ * to *sum* (e.g. for a KPI's total or a value-weighted chart). Falls back
+ * to the first numeric column whose name doesn't match a known
+ * non-summable pattern — never blindly to "just the first numeric column",
+ * since that column could be something like `age` where a sum is
+ * statistically meaningless. Returns `null` (not a bad guess) when every
+ * numeric column looks non-summable — callers already treat `null` as "no
+ * measure column available" and fall back to row counts or a distribution
+ * histogram instead, both of which remain valid for a column like `age`.
+ */
 export function chooseMeasureColumn(
   numeric: NumericColumnAnalysis[],
 ): string | null {
   if (numeric.length === 0) return null
   for (const hint of MEASURE_NAME_HINTS) {
-    const match = numeric.find((n) => hint.test(n.column))
+    const match = numeric.find((n) => hint.test(normalizeColumnNameForMatching(n.column)))
     if (match) return match.column
   }
-  return numeric[0].column
+  const summable = numeric.filter(
+    (n) =>
+      !NON_SUMMABLE_NAME_HINTS.some((hint) =>
+        hint.test(normalizeColumnNameForMatching(n.column)),
+      ),
+  )
+  return summable[0]?.column ?? null
 }
 
 // ---------------------------------------------------------------------------

@@ -10,18 +10,22 @@
  * chained context. Phase 10 extended that fixed order to put real cleaning
  * ahead of EDA, per the roadmap's resolved architecture:
  *
- *   dataDictionary + planCleaning (concurrent)
+ *   dataDictionary -> planCleaning
  *     -> clean (ETL apply)
  *     -> eda (numeric/quality/dates on the now-cleaned table)
  *     -> businessInsights -> explanation -> clientQuestions
  *
- * `dataDictionary` and `planCleaning` are Milestone 10.1's pairing: both
- * consume the same raw structural/quality context and are kicked off
- * together via `runUnderstandAndPlan` (mirroring how `generateBusinessInsights`
- * already runs its three calls concurrently) whenever either hasn't finished
- * yet. They always complete together (a single `Promise.all` under the
- * hood), so on resume either both are `'done'` or neither is — there's no
- * "only one of the two" state this pipeline needs to reconcile.
+ * `dataDictionary` and `planCleaning` are Milestone 10.1's pairing, kicked
+ * off together via `runUnderstandAndPlan` whenever either hasn't finished
+ * yet — originally concurrent (both independently consuming the same raw
+ * structural/quality context), now sequential post-roadmap so the cleaning
+ * plan can use the dictionary's business-meaning descriptions to make better
+ * cleaning decisions (see `understandAndPlan.ts`'s module doc for the
+ * latency/quality tradeoff). They still always complete together as far as
+ * this pipeline's status tracking is concerned (both report `'running'` then
+ * both `'done'`, or both `'error'`), so on resume either both are `'done'`
+ * or neither is — there's no "only one of the two" state this pipeline needs
+ * to reconcile.
  *
  * `clean` (Milestone 10.2) and `eda` (Milestone 10.3) are **not** LLM calls —
  * `applyCleaningPlan` and `analyzeNumericColumns`/`analyzeDataQuality`/
@@ -88,7 +92,7 @@ export type PipelineStepName =
   | 'explanation'
   | 'clientQuestions'
 
-/** Fixed run order — each step's chained context depends on everything before it. `dataDictionary`/`planCleaning` run concurrently in practice (see module doc) but are listed as adjacent entries for status-tracking/display purposes. */
+/** Fixed run order — each step's chained context depends on everything before it. `dataDictionary`/`planCleaning` run sequentially in practice (see module doc) but are listed as adjacent entries for status-tracking/display purposes. */
 export const STEP_ORDER: PipelineStepName[] = [
   'dataDictionary',
   'planCleaning',
@@ -211,7 +215,7 @@ export async function runPipeline(params: RunPipelineParams): Promise<void> {
     return summary
   }
 
-  // --- Step 1+2: dataDictionary + planCleaning (concurrent) ---------------
+  // --- Step 1+2: dataDictionary -> planCleaning (sequential) ---------------
   if (llmOutputs.dataDictionary.status !== 'done' || cleaningPlan.status !== 'done') {
     onStepUpdate({ step: 'dataDictionary', slot: { status: 'running', data: null } })
     onStepUpdate({ step: 'planCleaning', slot: { status: 'running', data: null } })

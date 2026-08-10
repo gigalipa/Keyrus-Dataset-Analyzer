@@ -43,10 +43,11 @@
 import { z } from 'zod'
 import { runValidatedJsonRequest } from './client'
 import { callMistralRawText } from './mistral'
-import { buildSystemPrompt, formatDatasetContext } from './prompt'
+import { buildSystemPrompt, condenseInsightGroupForContext, formatDatasetContext } from './prompt'
 import { summarizeQualityHighlights } from './analysisSummary'
 import type { ColumnMetadata, StructuralAnalysis } from '../analysis/structural'
 import type { DataQualityReport } from '../analysis/quality'
+import type { InsightGroup } from './schema'
 
 // ---------------------------------------------------------------------------
 // Zod schemas
@@ -193,6 +194,16 @@ const TASK_INSTRUCTIONS = [
   'categorical values, mixed types) run against the RAW, uncleaned data.',
   'This scan is not the final analysis — it exists only to inform this plan.',
   '',
+  'When a data dictionary is provided below, use it: it explains what each',
+  'column actually means in business terms, which should directly inform',
+  'your cleaning decisions — e.g. a column the dictionary describes as a',
+  'free-text/optional field is a better candidate for "leave-null" than',
+  '"drop-row"; a column the dictionary identifies as an identifier or code',
+  'should rarely get a value-mapping or type coercion that would alter its',
+  'individual values; a column described as a rate/percentage/currency',
+  'amount should coerce to a numeric type unless the dictionary says',
+  'otherwise. Do not contradict the dictionary\'s stated meaning of a column.',
+  '',
   'For every column that genuinely needs cleaning, decide:',
   '  1. valueMappings — an explicit "from" -> "to" table unifying categorical',
   '     variants that clearly mean the same thing (casing, whitespace, near-',
@@ -234,6 +245,7 @@ function buildCleaningPlanUserContent(
   quality: DataQualityReport,
   totalRows: number,
   datasetName: string | undefined,
+  dictionary?: InsightGroup,
 ): string {
   const contextBlock = formatDatasetContext('Dataset context', {
     datasetName: datasetName ?? 'unknown',
@@ -255,6 +267,12 @@ function buildCleaningPlanUserContent(
     'Pre-clean data-quality scan (raw data — informs this plan only, not the final analysis)',
     { findings: summarizeQualityHighlights(quality) },
   )
+
+  const dictionaryBlock = dictionary
+    ? formatDatasetContext('Data dictionary (what each column means, in business terms)', {
+        entries: condenseInsightGroupForContext(dictionary),
+      })
+    : null
 
   const shapeInstruction = [
     'Return a single JSON object shaped like this CleaningPlan:',
@@ -281,9 +299,16 @@ function buildCleaningPlanUserContent(
     'Omit valueMappings (empty array) and set missingValuePolicy/typeCoercion to null when not applicable to that column.',
   ].join('\n')
 
-  return [contextBlock, '', columnsBlock, '', qualityBlock, '', shapeInstruction].join(
-    '\n',
-  )
+  return [
+    contextBlock,
+    '',
+    columnsBlock,
+    '',
+    qualityBlock,
+    ...(dictionaryBlock ? ['', dictionaryBlock] : []),
+    '',
+    shapeInstruction,
+  ].join('\n')
 }
 
 // ---------------------------------------------------------------------------
@@ -295,6 +320,15 @@ export interface GenerateCleaningPlanParams {
   structural: StructuralAnalysis
   /** A first-pass quality scan (`analyzeDataQuality`) run once against the RAW table, used only to inform this plan — not the final post-clean EDA (Milestone 10.3). */
   quality: DataQualityReport
+  /**
+   * The already-generated data dictionary for this dataset, when available —
+   * gives the model each column's actual business meaning to inform its
+   * cleaning decisions (see `TASK_INSTRUCTIONS`), instead of guessing purely
+   * from column names and raw sample values. Optional so this function still
+   * works standalone (mirrors `generateBusinessInsights`'s `dictionary`
+   * option, same rationale).
+   */
+  dictionary?: InsightGroup
   datasetName?: string
   signal?: AbortSignal
 }
@@ -311,7 +345,7 @@ export interface GenerateCleaningPlanParams {
 export async function generateCleaningPlan(
   params: GenerateCleaningPlanParams,
 ): Promise<CleaningPlan> {
-  const { structural, quality, datasetName, signal } = params
+  const { structural, quality, dictionary, datasetName, signal } = params
   const { columns, stats } = structural
 
   if (columns.length === 0) {
@@ -326,6 +360,7 @@ export async function generateCleaningPlan(
     quality,
     stats.totalRows,
     datasetName,
+    dictionary,
   )
 
   return runValidatedJsonRequest({

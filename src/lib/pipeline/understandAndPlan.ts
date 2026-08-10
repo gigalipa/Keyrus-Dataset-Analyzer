@@ -1,9 +1,22 @@
 /**
- * "Understand & Plan Cleaning" step — Phase 10, Milestone 10.1. Runs the
- * (unchanged) data dictionary call and the new cleaning-plan call
- * concurrently via `Promise.all`, both consuming the same raw
- * structural/quality context — mirroring how `generateBusinessInsights`
- * already runs its three calls concurrently (`businessInsights.ts`).
+ * "Understand & Plan Cleaning" step — Phase 10, Milestone 10.1; changed from
+ * concurrent to sequential post-roadmap (see below) so the cleaning plan can
+ * use the dictionary's business-meaning descriptions to make better cleaning
+ * decisions (e.g. not dropping rows for a column the dictionary says is
+ * genuinely optional).
+ *
+ * The two calls originally ran concurrently via `Promise.all`, both
+ * consuming the same raw structural/quality context, purely for latency
+ * (mirroring how `generateBusinessInsights` runs its three independent calls
+ * concurrently). That's no longer possible once the cleaning plan depends on
+ * the dictionary's *output*, not just the same input — so this now awaits
+ * the dictionary first and passes it into `generateCleaningPlan`. The
+ * tradeoff is real and deliberate: this step's wall-clock time grows by
+ * roughly the dictionary call's own duration, in exchange for cleaning
+ * decisions grounded in what each column actually means, not just its name
+ * and raw sample values. `runPipeline.ts`'s status tracking is unaffected —
+ * both steps still report `'running'` together and `'done'` together, this
+ * function's *internal* execution order is the only thing that changed.
  *
  * This is intentionally kept as its own small orchestration function rather
  * than wired directly into `runPipeline.ts`'s `STEP_ORDER`: Milestone 10.3
@@ -40,21 +53,31 @@ export interface RunUnderstandAndPlanParams {
 }
 
 /**
- * Runs the data dictionary and cleaning-plan LLM calls concurrently against
- * the same raw structural/quality context, per the roadmap's "reposition
- * data dictionary to run alongside plan cleaning" requirement. Rejects with
- * whichever call's `LlmError` (or plain `Error`, for the dictionary's
- * empty-columns case) fails first.
+ * Runs the data dictionary call, then the cleaning-plan call with the
+ * dictionary's result passed in as context — see the module doc for why this
+ * is sequential rather than the original concurrent `Promise.all`. Rejects
+ * with whichever call's `LlmError` (or plain `Error`, for the dictionary's
+ * empty-columns case) fails; if the dictionary call itself fails, the
+ * cleaning-plan call is never attempted, since it now depends on the
+ * dictionary's output.
  */
 export async function runUnderstandAndPlan(
   params: RunUnderstandAndPlanParams,
 ): Promise<UnderstandAndPlanResult> {
   const { structural, quality, datasetName, signal } = params
 
-  const [dictionary, cleaningPlan] = await Promise.all([
-    generateDataDictionary({ analysis: structural, datasetName, signal }),
-    generateCleaningPlan({ structural, quality, datasetName, signal }),
-  ])
+  const dictionary = await generateDataDictionary({
+    analysis: structural,
+    datasetName,
+    signal,
+  })
+  const cleaningPlan = await generateCleaningPlan({
+    structural,
+    quality,
+    dictionary,
+    datasetName,
+    signal,
+  })
 
   return { dictionary, cleaningPlan }
 }
