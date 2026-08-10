@@ -49,7 +49,7 @@ test('pipeline runs automatically, resumes correctly on reload, and Re-run analy
 
   await page.locator('input[type="file"]').setInputFiles(DATASET_A)
   await expect(
-    page.getByRole('heading', { name: 'Dataset overview' }),
+    page.getByRole('heading', { name: 'Dashboard' }),
   ).toBeVisible({ timeout: 15_000 })
 
   // No manual "Generate ..." trigger should exist anywhere — the pipeline
@@ -82,14 +82,17 @@ test('pipeline runs automatically, resumes correctly on reload, and Re-run analy
   ).toBeVisible()
 
   const requestsAfterFirstRun = llmRequests.length
-  // 1 dictionary + 3 business-insights (kpi/insight/recommendation) + 1
-  // explanation + 1 client-questions = 6 real calls for a fully-fresh run.
-  expect(requestsAfterFirstRun).toBeGreaterThanOrEqual(6)
+  // 1 dictionary + 1 cleaning plan (Phase 10, Milestone 10.1 — runs
+  // concurrently with the dictionary call) + 3 business-insights
+  // (kpi/insight/recommendation) + 1 explanation + 1 client-questions = 7
+  // real calls for a fully-fresh run. `clean`/`eda` (Milestones 10.2/10.3)
+  // are deterministic, non-LLM steps and make no network calls.
+  expect(requestsAfterFirstRun).toBeGreaterThanOrEqual(7)
 
   // --- Reload: an already-fully-done dataset shows its content immediately, no re-run. ---
   await page.reload()
   await expect(
-    page.getByRole('heading', { name: 'Dataset overview' }),
+    page.getByRole('heading', { name: 'Dashboard' }),
   ).toBeVisible({ timeout: 15_000 })
   // Nothing left to resume, so the overlay (up briefly only for the initial
   // IndexedDB-hydration check) should clear fast.

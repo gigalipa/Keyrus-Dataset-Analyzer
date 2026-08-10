@@ -5,6 +5,8 @@ import { asSingleGroup, asBusinessInsights } from '../../types/persistedDataset'
 import { DataOverviewCard } from '../results/DataOverviewCard'
 import { DataQualitySummaryCard } from '../results/DataQualitySummaryCard'
 import { ColumnDetailView } from '../results/ColumnDetailView'
+import { AuditTrailSection } from '../quality/AuditTrailSection'
+import { DatasetsComparisonView } from '../datasets/DatasetsComparisonView'
 import type { InsightItem } from '../../lib/llm/schema'
 import {
   buildMarkdownReport,
@@ -37,6 +39,16 @@ const ClientQuestionsPanel = lazy(() =>
     default: m.ClientQuestionsPanel,
   })),
 )
+const ExplanationPanel = lazy(() =>
+  import('../explanation/ExplanationPanel').then((m) => ({
+    default: m.ExplanationPanel,
+  })),
+)
+const DashboardPanel = lazy(() =>
+  import('../dashboard/DashboardPanel').then((m) => ({
+    default: m.DashboardPanel,
+  })),
+)
 
 interface MainViewportProps {
   activeSection: AppSection
@@ -46,6 +58,8 @@ interface MainViewportProps {
   file: File
   /** The active dataset's persisted LLM outputs — the pipeline (`useDatasetSession`, Phase 8) drives these; this component just passes each slot straight through to its display panel and reads from them for the downloadable report. */
   llmOutputs: PersistedDataset['llmOutputs']
+  /** The active dataset's persisted audit trail slot (Milestone 10.2/10.3) — passed straight through to `AuditTrailSection` in the `quality` section, same pass-through pattern as `llmOutputs`. */
+  cleaning: PersistedDataset['cleaning']
 }
 
 /** Narrows the `clientQuestions` slot's `InsightGroup` down to the bare `InsightItem[]` `markdownReport.ts` expects. */
@@ -78,20 +92,6 @@ function KeptMounted({ active, children }: KeptMountedProps) {
   )
 }
 
-/** Honest "not built yet" placeholder for sections whose real content lands in a later phase. */
-function ComingSoonCard({ label, phase }: { label: string; phase: number }) {
-  return (
-    <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center dark:border-slate-700 dark:bg-slate-900">
-      <p className="text-sm text-slate-500 dark:text-slate-400">
-        <span className="font-semibold text-slate-900 dark:text-slate-100">
-          {label}
-        </span>{' '}
-        — coming in Phase {phase}
-      </p>
-    </div>
-  )
-}
-
 /**
  * Center viewport — Phase 7, Milestone 7.3. Renders the section
  * `Sidebar`/`sections.ts` says is active, replacing Milestone 7.2's
@@ -99,11 +99,20 @@ function ComingSoonCard({ label, phase }: { label: string; phase: number }) {
  * the sidebar already handles section switching, so this component only
  * needs to show/hide content, not scroll to it.
  *
- * The five sections with real Phase 3/4 content (`overview`, `quality`,
- * `dictionary`, `insights`, `questions`) are all mounted unconditionally and
- * toggled via `KeptMounted` — see its doc comment for why. The three
- * Phase 9/10 sections (`dashboard`, `explanation`, `datasets`) hold no state
- * and can mount/unmount freely with plain conditional rendering.
+ * The six sections with real Phase 3/4/9 content (`overview`, `quality`,
+ * `dictionary`, `insights`, `questions`, `dashboard`) are all mounted
+ * unconditionally and toggled via `KeptMounted` — see its doc comment for
+ * why. `dashboard` (Phase 9, Milestone 9.1) joined this group because
+ * `DashboardPanel` owns local filter state (which category is selected) that
+ * a section switch should preserve, same reasoning as the three LLM panels
+ * below. The remaining two sections mount/unmount freely with plain
+ * conditional rendering instead: `explanation` (Phase 9, Milestone 9.2) and
+ * `datasets` (Phase 10, Milestone 10.6) because, unlike the `KeptMounted`
+ * sections, neither `ExplanationPanel` nor `DatasetsComparisonView` owns any
+ * local UI state (no filters/sort/expand-state to lose) — each just renders
+ * straight off its props (`llmOutputs.explanation`, and `analysis`/`cleaning`
+ * respectively), so mounting/unmounting them on every section switch is
+ * behaviorally identical to keeping them mounted.
  *
  * The "Download report" button reads straight from the `llmOutputs` prop
  * (Phase 8, Milestone 8.1 — previously this component lifted local
@@ -111,16 +120,18 @@ function ComingSoonCard({ label, phase }: { label: string; phase: number }) {
  * `onDataChange` callback just for this; now that `llmOutputs` already
  * carries everything generated for this dataset, that indirection is gone).
  *
- * `key={datasetId}` on the three LLM panels (bug fix, found in live Phase 7
- * testing): `KeptMounted` intentionally keeps them mounted across *section*
- * switches so their local UI state (tag filters, etc.) survives navigation,
- * but without a key tied to the dataset, switching *datasets* would leave
- * stale per-dataset UI state (e.g. a tag filter referencing the old
- * dataset's tags) hanging around. Keying by `datasetId` makes React remount
- * these three (only) when the active dataset actually changes. Left in place
- * even though these panels no longer own any async LLM state themselves
- * (Phase 8 made them pure display components) — still harmless, still
- * correct defense-in-depth.
+ * `key={datasetId}` on the three LLM panels and `DashboardPanel` (bug fix,
+ * found in live Phase 7 testing): `KeptMounted` intentionally keeps them
+ * mounted across *section* switches so their local UI state (tag filters,
+ * the dashboard's selected filter value, etc.) survives navigation, but
+ * without a key tied to the dataset, switching *datasets* would leave stale
+ * per-dataset UI state (e.g. a tag filter referencing the old dataset's
+ * tags, or a dashboard filter value that doesn't exist in the new dataset)
+ * hanging around. Keying by `datasetId` makes React remount these four
+ * (only) when the active dataset actually changes. Left in place on the
+ * three LLM panels even though they no longer own any async LLM state
+ * themselves (Phase 8 made them pure display components) — still harmless,
+ * still correct defense-in-depth.
  */
 export function MainViewport({
   activeSection,
@@ -128,6 +139,7 @@ export function MainViewport({
   analysis,
   file,
   llmOutputs,
+  cleaning,
 }: MainViewportProps) {
   const handleDownloadReport = () => {
     const reportContent: ReportLlmContent = {
@@ -174,6 +186,7 @@ export function MainViewport({
           numeric={analysis.numeric}
           totalRows={analysis.structural.stats.totalRows}
         />
+        <AuditTrailSection slot={cleaning} />
       </KeptMounted>
 
       <KeptMounted active={activeSection === 'dictionary'}>
@@ -198,14 +211,28 @@ export function MainViewport({
         </Suspense>
       </KeptMounted>
 
-      {activeSection === 'dashboard' && (
-        <ComingSoonCard label="Dashboard" phase={9} />
-      )}
+      <KeptMounted active={activeSection === 'dashboard'}>
+        <Suspense fallback={<SkeletonCardGrid count={4} />}>
+          <DashboardPanel
+            key={datasetId}
+            analysis={analysis}
+            businessInsightsSlot={llmOutputs.businessInsights}
+          />
+        </Suspense>
+      </KeptMounted>
+
       {activeSection === 'explanation' && (
-        <ComingSoonCard label="Explanation" phase={9} />
+        <Suspense fallback={<SkeletonList count={3} />}>
+          <ExplanationPanel slot={llmOutputs.explanation} />
+        </Suspense>
       )}
       {activeSection === 'datasets' && (
-        <ComingSoonCard label="Datasets" phase={10} />
+        <DatasetsComparisonView
+          key={datasetId}
+          analysis={analysis}
+          fileName={file.name}
+          cleaning={cleaning}
+        />
       )}
     </div>
   )

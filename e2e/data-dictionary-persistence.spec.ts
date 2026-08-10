@@ -45,7 +45,7 @@ test('Data Dictionary does not regenerate when switching back to a previously-an
   // dictionary content.
   await page.locator('input[type="file"]').setInputFiles(DATASET_A)
   await expect(
-    page.getByRole('heading', { name: 'Dataset overview' }),
+    page.getByRole('heading', { name: 'Dashboard' }),
   ).toBeVisible({ timeout: 15_000 })
   await expect(overlay).toBeHidden({ timeout: 180_000 })
 

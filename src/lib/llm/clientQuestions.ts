@@ -151,6 +151,15 @@ const TASK_INSTRUCTIONS = [
   '- "industry": questions motivated by the inferred industry context.',
   '',
   'Cover a mix of topics rather than clustering on just one.',
+  '',
+  'Every question MUST also set a `priority` field to exactly one of "high",',
+  '"medium", or "low", reflecting how urgent/important it is for the',
+  'consultant to ask this question early in the engagement. A question',
+  'motivated by a serious data-quality concern or a major structural gap',
+  '(e.g. an entirely empty column) should be "high"; a question that could',
+  'block or reshape the analysis if left unanswered should be at least',
+  '"medium"; a generic exploratory or nice-to-know question should be',
+  '"low". Do not omit `priority` on any item.',
 ].join('\n')
 
 export interface GenerateClientQuestionsOptions {
@@ -243,11 +252,33 @@ export async function generateClientQuestions(
   const systemPrompt = buildSystemPrompt(TASK_INSTRUCTIONS)
   const userContent = buildUserContent(columns, qualityReport, options)
 
-  return runStructuredInsightRequest({
+  const result = await runStructuredInsightRequest({
     type: 'question',
     systemPrompt,
     userContent,
     callProvider: callGeminiRawText,
     signal: options.signal,
   })
+
+  return withDefaultedPriority(result)
+}
+
+/**
+ * Defensive fallback (Phase 9, Milestone 9.4) for the "priority" instruction
+ * above: the display component always needs a `priority` to sort by, but an
+ * LLM occasionally omits an optional-looking field despite being told it's
+ * required. Rather than let a missing `priority` silently break the
+ * importance sort (or fail validation, which `schema.ts` intentionally
+ * doesn't enforce since `priority` is optional across all insight types),
+ * default any question item missing it to `'medium'` here, right after
+ * validation, so every downstream consumer (storage, the panel) always sees
+ * a populated value.
+ */
+function withDefaultedPriority(group: InsightGroup): InsightGroup {
+  return {
+    ...group,
+    items: group.items.map((item) =>
+      item.priority ? item : { ...item, priority: 'medium' },
+    ),
+  }
 }

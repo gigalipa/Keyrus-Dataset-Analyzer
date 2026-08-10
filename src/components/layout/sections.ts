@@ -65,4 +65,4 @@ export const SECTION_LABELS: Record<AppSection, string> = SECTION_GROUPS.reduce(
 )
 
 /** Default active section once a dataset is active. */
-export const DEFAULT_SECTION: AppSection = 'overview'
+export const DEFAULT_SECTION: AppSection = 'dashboard'

@@ -73,8 +73,19 @@ test('loading overlay appears immediately on upload, shows changing stage text, 
   expect(distinctTexts.size).toBeGreaterThanOrEqual(2)
   // The mapping is stage-based, not a fixed timer — every string seen must
   // be one of the known stage labels, not arbitrary/garbled text.
+  //
+  // Phase 10, Milestone 10.3: the pipeline now reorders around real
+  // cleaning — "Reading your file..." (raw parse + structural analysis,
+  // `useFileUpload`), "Understanding data..." (the data-dictionary and
+  // cleaning-plan LLM calls, run concurrently), "Cleaning data..." (the ETL
+  // apply step — genuinely reachable now, unlike its Milestone 8.2
+  // placeholder), and "Analyzing cleaned data..." (EDA re-run against the
+  // now-cleaned table) all precede the three original chained LLM steps.
   const KNOWN_STATUS_TEXTS = new Set([
+    'Reading your file...',
     'Understanding data...',
+    'Cleaning data...',
+    'Analyzing cleaned data...',
     'Generating KPIs...',
     'Explaining business insights...',
     'Preparing client questions...',
@@ -86,7 +97,7 @@ test('loading overlay appears immediately on upload, shows changing stage text, 
 
   // 3. Once the overlay is gone, the dashboard is genuinely interactive.
   await expect(
-    page.getByRole('heading', { name: 'Dataset overview' }),
+    page.getByRole('heading', { name: 'Dashboard' }),
   ).toBeVisible()
   await page.getByRole('button', { name: 'Data Dictionary', exact: true }).click()
   await expect(
@@ -107,13 +118,13 @@ test('loading overlay locks the shell underneath it during a pipeline run', asyn
 
   await page.locator('input[type="file"]').setInputFiles(DATASET_A)
   await expect(
-    page.getByRole('heading', { name: 'Dataset overview' }),
+    page.getByRole('heading', { name: 'Dashboard' }),
   ).toBeVisible({ timeout: 15_000 })
   await expect(overlay).toBeHidden({ timeout: 180_000 })
 
   // Confirm the active section before attempting to disrupt it.
-  const overviewNavItem = page.getByRole('button', { name: 'Overview', exact: true })
-  await expect(overviewNavItem).toHaveAttribute('aria-current', 'page')
+  const dashboardNavItem = page.getByRole('button', { name: 'Dashboard', exact: true })
+  await expect(dashboardNavItem).toHaveAttribute('aria-current', 'page')
   const dictionaryNavItem = page.getByRole('button', {
     name: 'Data Dictionary',
     exact: true,
@@ -161,8 +172,8 @@ test('loading overlay locks the shell underneath it during a pipeline run', asyn
   }
   expect(clickError).not.toBeNull()
 
-  // Nothing changed: the active section is still Overview.
-  await expect(overviewNavItem).toHaveAttribute('aria-current', 'page')
+  // Nothing changed: the active section is still Dashboard.
+  await expect(dashboardNavItem).toHaveAttribute('aria-current', 'page')
   await expect(dictionaryNavItem).not.toHaveAttribute('aria-current', 'page')
 
   // Let the re-run finish so the test ends in a clean state.

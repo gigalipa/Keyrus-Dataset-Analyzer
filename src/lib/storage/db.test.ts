@@ -17,7 +17,11 @@ import {
   updateDataset,
   __resetDbConnectionForTests,
 } from './db'
-import { createPendingLlmOutputs, type PersistedDataset } from '../../types/persistedDataset'
+import {
+  createPendingLlmOutputs,
+  createPendingPipelineExtras,
+  type PersistedDataset,
+} from '../../types/persistedDataset'
 import type { NormalizedTable } from '../../types/parsedTable'
 import type { StructuralAnalysis } from '../analysis/structural'
 import type { DataQualityReport } from '../analysis/quality'
@@ -90,6 +94,7 @@ function buildFixtureRecord(id: string): PersistedDataset {
       quality,
       dates: [],
     },
+    ...createPendingPipelineExtras(),
     llmOutputs: createPendingLlmOutputs(),
   }
 }

@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { PersistedDataset } from '../../types/persistedDataset'
 import { asBusinessInsights } from '../../types/persistedDataset'
 import type { InsightItem } from '../../lib/llm/schema'
@@ -66,12 +68,27 @@ function extractMetricValue(item: InsightItem): string | null {
  * `truncate`) on both the title and the description, so a longer KPI title
  * or description wraps onto up to two lines instead of being cut off —
  * paired with the taller top bar below.
+ *
+ * UX fix (user feedback): `line-clamp-2` still hides anything past two
+ * lines with no way to read the rest, so the card is now a real button —
+ * clicking/tapping it opens `TopBarKpiModal` below with the KPI's full,
+ * unclamped title and description.
  */
-function TopBarKpiCard({ item }: { item: InsightItem }) {
+function TopBarKpiCard({
+  item,
+  onExpand,
+}: {
+  item: InsightItem
+  onExpand: (item: InsightItem) => void
+}) {
   const metricValue = extractMetricValue(item)
 
   return (
-    <div className="flex w-44 shrink-0 flex-col gap-0.5 rounded-md border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900">
+    <button
+      type="button"
+      onClick={() => onExpand(item)}
+      className="flex w-44 shrink-0 flex-col gap-0.5 rounded-md border border-slate-200 bg-white px-3 py-2 text-left hover:border-slate-300 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 dark:hover:bg-slate-800"
+    >
       <dt className="line-clamp-2 text-[0.65rem] font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400">
         {item.title}
       </dt>
@@ -84,7 +101,103 @@ function TopBarKpiCard({ item }: { item: InsightItem }) {
       >
         {metricValue ?? item.description}
       </dd>
-    </div>
+    </button>
+  )
+}
+
+/**
+ * Full-content modal for a KPI card clicked/tapped in the top bar — shows
+ * the same title/value/description with no `line-clamp` truncation, so a
+ * long KPI is always fully readable, not just the first two lines. Same
+ * dismiss conventions as `UploadModal.tsx` (this app's established modal
+ * pattern): backdrop click, Escape, and an explicit close button, with focus
+ * moved to the panel on open.
+ *
+ * Rendered via `createPortal` into `document.body` rather than in place:
+ * `<header>` (this component's parent) carries `backdrop-blur`, and per the
+ * CSS spec `backdrop-filter` creates a new containing block for
+ * `position: fixed` descendants — without the portal, this modal's `fixed`
+ * positioning resolved relative to the (short) header box instead of the
+ * real viewport, visibly squeezing/clipping it (found in live testing).
+ * Positioned near the top of the viewport with a top margin
+ * (`pt-20`/`sm:pt-24`) rather than vertically centered, and the whole
+ * backdrop scrolls (`overflow-y-auto`) so a KPI long enough to make the
+ * panel taller than the viewport is still fully reachable, not clipped.
+ */
+function TopBarKpiModal({
+  item,
+  onClose,
+}: {
+  item: InsightItem
+  onClose: () => void
+}) {
+  const panelRef = useRef<HTMLDivElement>(null)
+  const metricValue = extractMetricValue(item)
+
+  useEffect(() => {
+    panelRef.current?.focus()
+  }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex justify-center overflow-y-auto bg-slate-900/50 p-4 pt-20 backdrop-blur-sm sm:pt-24"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose()
+      }}
+    >
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="kpi-modal-heading"
+        tabIndex={-1}
+        className="relative flex h-fit w-full max-w-sm flex-col gap-2 rounded-lg border border-slate-200 bg-white p-5 shadow-lg outline-none dark:border-slate-800 dark:bg-slate-900"
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute -top-3 -right-3 flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-600 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+        >
+          &times;
+        </button>
+        <h2
+          id="kpi-modal-heading"
+          className="text-xs font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400"
+        >
+          {item.title}
+        </h2>
+        {metricValue && (
+          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+            {metricValue}
+          </p>
+        )}
+        <p className="text-sm text-slate-700 dark:text-slate-300">
+          {item.description}
+        </p>
+        {item.tags.length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-1.5">
+            {item.tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -109,6 +222,11 @@ function TopBarKpiCard({ item }: { item: InsightItem }) {
  * scroll. The bar is also taller (`py-3` -> `py-4`) so each KPI tile has
  * room for its title and up to two lines of wrapped text instead of a
  * single truncated line.
+ *
+ * UX fix (user feedback): two lines still isn't always enough — a card whose
+ * title or description runs longer than that had no way to be read in full.
+ * Cards are now clickable/tappable and open `TopBarKpiModal` with the same
+ * KPI's complete, unclamped content.
  */
 export function TopBar({
   historyCount = 0,
@@ -118,6 +236,7 @@ export function TopBar({
 }: TopBarProps) {
   const kpiItems =
     llmOutputs && asBusinessInsights(llmOutputs.businessInsights)?.kpis.items
+  const [expandedKpi, setExpandedKpi] = useState<InsightItem | null>(null)
 
   return (
     <header className="border-b border-slate-200 bg-slate-100/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
@@ -136,7 +255,9 @@ export function TopBar({
           className="flex min-w-0 flex-1 items-center gap-3 overflow-x-auto"
         >
           {kpiItems && kpiItems.length > 0 ? (
-            kpiItems.map((item) => <TopBarKpiCard key={item.id} item={item} />)
+            kpiItems.map((item) => (
+              <TopBarKpiCard key={item.id} item={item} onExpand={setExpandedKpi} />
+            ))
           ) : hasActiveDataset ? (
             <p className="text-xs text-slate-400 italic dark:text-slate-500">
               KPIs will appear here once your data is analyzed.
@@ -158,6 +279,10 @@ export function TopBar({
           </button>
         )}
       </div>
+
+      {expandedKpi && (
+        <TopBarKpiModal item={expandedKpi} onClose={() => setExpandedKpi(null)} />
+      )}
     </header>
   )
 }

@@ -8,9 +8,22 @@ import { useDatasetSession } from './hooks/useDatasetSession'
 import { DEFAULT_SECTION, type AppSection } from './components/layout/sections'
 import type { PipelineStepName } from './lib/pipeline/runPipeline'
 
-/** Stage-by-stage status line shown under the overlay's spinner for each LLM pipeline step (Phase 8, Milestone 8.2). */
+/**
+ * Stage-by-stage status line shown under the overlay's spinner for each
+ * pipeline step (Phase 8, Milestone 8.2; extended Phase 10, Milestone 10.3).
+ * `dataDictionary` and `planCleaning` share the same "Understanding data..."
+ * label since they run concurrently as one conceptual stage (Milestone
+ * 10.1); `clean` gets its own genuinely distinct "Cleaning data..." label —
+ * unlike the Milestone 8.2 placeholder, this is now a real, reachable
+ * pipeline step (`applyCleaningPlan`, Milestone 10.2) — and `eda` gets its
+ * own label too, since it's a distinct, separately-tracked step
+ * (Milestone 10.3) even though it's not an LLM call.
+ */
 const PIPELINE_STEP_STATUS: Record<PipelineStepName, string> = {
   dataDictionary: 'Understanding data...',
+  planCleaning: 'Understanding data...',
+  clean: 'Cleaning data...',
+  eda: 'Analyzing cleaned data...',
   businessInsights: 'Generating KPIs...',
   explanation: 'Explaining business insights...',
   clientQuestions: 'Preparing client questions...',
@@ -53,7 +66,13 @@ function App() {
     view.kind === 'loading'
       ? 'Loading your workspace…'
       : uploadState.status === 'processing'
-        ? 'Understanding data...'
+        // Distinct from `dataDictionary`/`planCleaning`'s "Understanding
+        // data..." label below (Phase 10, Milestone 10.3 fix): this text
+        // covers `useFileUpload`'s parse + structural-analysis phase, which
+        // runs *before* the real "Understand & Plan Cleaning" pipeline step
+        // even starts — conflating the two was a real, pre-existing point of
+        // confusion this milestone's reorder fixes.
+        ? 'Reading your file...'
         : currentPipelineStep
           ? PIPELINE_STEP_STATUS[currentPipelineStep]
           // pipelineRunning is true but currentPipelineStep is momentarily
@@ -98,6 +117,7 @@ function App() {
             analysis={view.analysis}
             file={view.file}
             llmOutputs={view.llmOutputs}
+            cleaning={view.cleaning}
           />
         )}
       </div>

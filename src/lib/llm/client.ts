@@ -7,6 +7,14 @@
  * Milestones 4.2-4.4 call `runStructuredInsightRequest` instead of talking
  * to a provider client directly, so the retry/validation policy lives in
  * one place rather than being reimplemented per milestone.
+ *
+ * Generalized in Phase 10, Milestone 10.1: `runStructuredInsightRequest` is
+ * now a thin wrapper around the schema-agnostic `runValidatedJsonRequest`,
+ * so the new "Plan Cleaning" call (`cleaningPlan.ts`) can reuse the exact
+ * same fetch -> `parseJsonResponse` -> validate -> retry-once-on-failure
+ * pipeline against its own `CleaningPlan` schema, instead of duplicating
+ * this control flow. The `InsightGroup`/`InsightType` behavior below is
+ * unchanged — only its implementation now sits on top of the generic path.
  */
 import { jsonrepair } from 'jsonrepair'
 import {
@@ -50,25 +58,62 @@ export interface RunStructuredInsightRequestParams {
 export async function runStructuredInsightRequest(
   params: RunStructuredInsightRequestParams,
 ): Promise<InsightGroup> {
-  const {
-    type,
+  const { type, systemPrompt, userContent, callProvider, expectedCount, signal } =
+    params
+
+  return runValidatedJsonRequest({
     systemPrompt,
     userContent,
     callProvider,
-    expectedCount,
     signal,
-  } = params
+    parse: (raw) => parseInsightGroup(type, raw, expectedCount),
+    describeRetryableFailure,
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Generic validated-JSON request pipeline
+// ---------------------------------------------------------------------------
+
+export interface RunValidatedJsonRequestParams<T> {
+  systemPrompt: string
+  userContent: string
+  /** Provider call to use, e.g. `callMistralRawText`. */
+  callProvider: RawProviderCall
+  /**
+   * Validates the already-JSON-parsed response body, returning the typed
+   * result or throwing a describable error (e.g. a schema's own
+   * `*ValidationError`). Called once per attempt (initial + one retry).
+   */
+  parse: (raw: unknown) => T
+  /**
+   * Given a thrown error, returns a human-readable issues description to
+   * feed back to the model as a corrective retry message if the failure is
+   * retryable (malformed JSON or a schema-validation error this particular
+   * schema recognizes), or `null` if it's not (a provider-level failure a
+   * corrective message can't fix).
+   */
+  describeRetryableFailure: (error: unknown) => string | null
+  signal?: AbortSignal
+}
+
+/**
+ * Schema-agnostic version of the fetch -> parse -> validate ->
+ * retry-once-on-failure pipeline `runStructuredInsightRequest` wraps for
+ * `InsightGroup`. Any structured-output call in this app can use this
+ * directly by supplying its own `parse`/`describeRetryableFailure`, without
+ * duplicating the JSON-repair or retry control flow.
+ */
+export async function runValidatedJsonRequest<T>(
+  params: RunValidatedJsonRequestParams<T>,
+): Promise<T> {
+  const { systemPrompt, userContent, callProvider, parse, describeRetryableFailure, signal } =
+    params
 
   const messages = buildInsightPromptMessages(systemPrompt, userContent)
 
   try {
-    return await attemptOnce(
-      type,
-      messages,
-      callProvider,
-      expectedCount,
-      signal,
-    )
+    return await attemptOnce(messages, callProvider, parse, signal)
   } catch (firstError) {
     const issues = describeRetryableFailure(firstError)
     if (!issues) throw toLlmError(firstError)
@@ -79,29 +124,22 @@ export async function runStructuredInsightRequest(
     ]
 
     try {
-      return await attemptOnce(
-        type,
-        retryMessages,
-        callProvider,
-        expectedCount,
-        signal,
-      )
+      return await attemptOnce(retryMessages, callProvider, parse, signal)
     } catch (secondError) {
       throw toLlmError(secondError)
     }
   }
 }
 
-async function attemptOnce(
-  type: InsightType,
+async function attemptOnce<T>(
   messages: PromptMessage[],
   callProvider: RawProviderCall,
-  expectedCount: number | undefined,
+  parse: (raw: unknown) => T,
   signal: AbortSignal | undefined,
-): Promise<InsightGroup> {
+): Promise<T> {
   const rawText = await callProvider(messages, signal)
   const rawJson = parseJsonResponse(rawText)
-  return parseInsightGroup(type, rawJson, expectedCount)
+  return parse(rawJson)
 }
 
 /**

@@ -29,10 +29,10 @@ test('History button is gated on an active dataset, badge reflects count, logo-o
   // the History button appears with a badge reading "1". As of Milestone
   // 7.3 the center viewport shows real per-section content (`MainViewport`)
   // rather than a placeholder, so "processing complete" is asserted via the
-  // default Overview section's real heading.
+  // default Dashboard section's real heading.
   await page.locator('input[type="file"]').setInputFiles(DATASET_A)
   await expect(
-    page.getByRole('heading', { name: 'Dataset overview' }),
+    page.getByRole('heading', { name: 'Dashboard' }),
   ).toBeVisible({ timeout: 15_000 })
 
   const historyButton = page.getByRole('button', { name: /^History/ })

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { LlmOutputSlot } from '../../types/persistedDataset'
-import type { InsightGroup, InsightItem } from '../../lib/llm/schema'
+import type { InsightGroup, InsightItem, InsightPriority } from '../../lib/llm/schema'
 import { SkeletonList } from '../shared/Skeleton'
 import { CopyButton } from '../shared/CopyButton'
 
@@ -9,18 +9,32 @@ interface ClientQuestionsPanelProps {
   slot: LlmOutputSlot
 }
 
+/** Highest-first rank used for the importance sort — mirrors the Business Insights panel's (Milestone 9.3) rank scheme so the two sections' "high → low" ordering behaves identically. Anything missing (shouldn't happen — `clientQuestions.ts` defaults it to `'medium'`) sorts last. */
+const PRIORITY_RANK: Record<InsightPriority, number> = { high: 3, medium: 2, low: 1 }
+
 /**
  * Milestone 4.4 display component; rewritten Phase 8, Milestone 8.1 into a
- * pure display component. Renders the `InsightGroup` of `type: 'question'`
- * items produced by the pipeline's client-questions step as a numbered list,
- * with topic-tag filter chips above it and a per-question
- * copy-to-clipboard button.
+ * pure display component; rebuilt Phase 9, Milestone 9.4 into a filterable/
+ * sortable card list per `docs/development-process.md`'s "Filterable Card
+ * List Checklist" — the same pattern Milestone 9.3 applies to Business
+ * Insights, so the two sections feel consistent even though their content
+ * differs. Renders the `InsightGroup` of `type: 'question'` items produced
+ * by the pipeline's client-questions step as a numbered list of cards, each
+ * showing a visible importance indicator and its topic tag(s), with a
+ * multi-select topic filter (AND semantics: an item matches only if it has
+ * *every* selected tag — chosen over OR because the prompt tags each
+ * question with exactly one topic, so OR would make the "no items match"
+ * empty state effectively unreachable from real data; AND makes it a normal,
+ * reachable outcome the moment two different topics are both selected) and a
+ * high-to-low importance sort, both applied together and both local to this
+ * section.
  *
  * No longer owns any `useLlmRequest`/trigger logic — the pipeline generates
  * this automatically; this component only ever renders `slot`.
  */
 export function ClientQuestionsPanel({ slot }: ClientQuestionsPanelProps) {
-  const [activeTopic, setActiveTopic] = useState<string | null>(null)
+  const [selectedTopics, setSelectedTopics] = useState<string[]>([])
+  const [sortByImportance, setSortByImportance] = useState(false)
 
   const data: InsightGroup | null =
     slot.status === 'done' && slot.data && !Array.isArray(slot.data) ? slot.data : null
@@ -34,11 +48,37 @@ export function ClientQuestionsPanel({ slot }: ClientQuestionsPanelProps) {
     return Array.from(topics).sort()
   }, [data])
 
+  // Derived rather than synced via an effect: if a previously-selected topic
+  // no longer exists in the current data (e.g. a new dataset loaded), drop
+  // it from the effective filter without an extra render pass.
+  const effectiveSelectedTopics = useMemo(
+    () => selectedTopics.filter((topic) => allTopics.includes(topic)),
+    [selectedTopics, allTopics],
+  )
+
   const visibleItems = useMemo(() => {
     if (!data) return []
-    if (!activeTopic) return data.items
-    return data.items.filter((item) => item.tags.includes(activeTopic))
-  }, [data, activeTopic])
+    const filtered =
+      effectiveSelectedTopics.length === 0
+        ? data.items
+        : data.items.filter((item) =>
+            effectiveSelectedTopics.every((topic) => item.tags.includes(topic)),
+          )
+    if (!sortByImportance) return filtered
+    // `Array.prototype.sort` is spec-guaranteed stable (ES2019+), so items
+    // with equal priority keep their original relative order.
+    return [...filtered].sort(
+      (a, b) => priorityRank(b.priority) - priorityRank(a.priority),
+    )
+  }, [data, effectiveSelectedTopics, sortByImportance])
+
+  function toggleTopic(topic: string) {
+    setSelectedTopics((current) =>
+      current.includes(topic)
+        ? current.filter((t) => t !== topic)
+        : [...current, topic],
+    )
+  }
 
   return (
     <section
@@ -82,35 +122,51 @@ export function ClientQuestionsPanel({ slot }: ClientQuestionsPanelProps) {
 
       {slot.status === 'done' && data && (
         <>
-          {allTopics.length > 0 && (
-            <div
-              role="group"
-              aria-label="Filter by topic"
-              className="flex flex-wrap gap-2"
-            >
-              <TopicChip
-                label="All"
-                isActive={activeTopic === null}
-                onClick={() => setActiveTopic(null)}
-              />
-              {allTopics.map((topic) => (
-                <TopicChip
-                  key={topic}
-                  label={topic}
-                  isActive={activeTopic === topic}
-                  onClick={() =>
-                    setActiveTopic((current) =>
-                      current === topic ? null : topic,
-                    )
-                  }
-                />
-              ))}
-            </div>
-          )}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {allTopics.length > 0 && (
+              <div
+                role="group"
+                aria-label="Filter by topic (select any number)"
+                className="flex flex-wrap gap-2"
+              >
+                {allTopics.map((topic) => (
+                  <TopicChip
+                    key={topic}
+                    label={topic}
+                    isActive={effectiveSelectedTopics.includes(topic)}
+                    onClick={() => toggleTopic(topic)}
+                  />
+                ))}
+                {effectiveSelectedTopics.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTopics([])}
+                    className="rounded-full px-2 py-1 text-xs font-medium text-slate-500 underline-offset-2 hover:underline dark:text-slate-400"
+                  >
+                    Clear filter
+                  </button>
+                )}
+              </div>
+            )}
+
+            <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
+              Sort
+              <select
+                value={sortByImportance ? 'importance' : 'default'}
+                onChange={(event) =>
+                  setSortByImportance(event.target.value === 'importance')
+                }
+                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+              >
+                <option value="default">Default order</option>
+                <option value="importance">Importance (high to low)</option>
+              </select>
+            </label>
+          </div>
 
           {visibleItems.length === 0 ? (
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              No questions match this topic.
+              No questions match this filter.
             </p>
           ) : (
             <ol className="flex flex-col gap-3">
@@ -123,6 +179,10 @@ export function ClientQuestionsPanel({ slot }: ClientQuestionsPanelProps) {
       )}
     </section>
   )
+}
+
+function priorityRank(priority: InsightPriority | undefined): number {
+  return priority ? PRIORITY_RANK[priority] : 0
 }
 
 interface TopicChipProps {
@@ -148,6 +208,23 @@ function TopicChip({ label, isActive, onClick }: TopicChipProps) {
   )
 }
 
+const IMPORTANCE_BADGE_CLASSES: Record<InsightPriority, string> = {
+  high: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300',
+  medium: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300',
+  low: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+}
+
+function ImportanceBadge({ priority }: { priority: InsightPriority | undefined }) {
+  const resolved = priority ?? 'medium'
+  return (
+    <span
+      className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${IMPORTANCE_BADGE_CLASSES[resolved]}`}
+    >
+      {resolved}
+    </span>
+  )
+}
+
 interface QuestionListItemProps {
   item: InsightItem
   index: number
@@ -163,9 +240,12 @@ function QuestionListItem({ item, index }: QuestionListItemProps) {
         {index + 1}
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <p className="font-medium text-slate-900 dark:text-slate-100">
-          {item.title}
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-medium text-slate-900 dark:text-slate-100">
+            {item.title}
+          </p>
+          <ImportanceBadge priority={item.priority} />
+        </div>
         <p className="text-sm text-slate-600 dark:text-slate-400">
           {item.description}
         </p>

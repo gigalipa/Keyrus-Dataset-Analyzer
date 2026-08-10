@@ -30,20 +30,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DATASET_A = path.resolve(__dirname, '../docs/lakeside_orders_sample.csv')
 
 /**
- * Real (Milestone 7.3) content anchor per section — used both to confirm
- * the right section is showing and, for the 3 not-yet-built sections, that
- * the placeholder is honest ("coming in Phase N") rather than fabricated
- * content.
+ * Real content anchor per section, confirming the right section is showing.
+ * All 8 destinations now render real content (Phase 10, Milestone 10.6
+ * closed out the last placeholder — Datasets' "coming in Phase 10" card is
+ * gone, replaced by the real raw-vs-cleaned comparison view).
  */
 const SECTION_CONTENT: Record<string, RegExp | string> = {
-  Dashboard: 'coming in Phase 9',
-  Explanation: 'coming in Phase 9',
+  Dashboard: 'KPIs, notices, and charts computed live from this dataset.',
+  Explanation: /Generating your business explanation\.\.\.|Explanation/,
   'Business Insights': /Generating business insights\.\.\.|Business insights/,
   Questions: 'Client Questions',
   Overview: 'Dataset overview',
   'Data Dictionary': 'Data dictionary',
   Quality: 'Data quality summary',
-  Datasets: 'coming in Phase 10',
+  Datasets: 'Raw vs. cleaned',
 }
 
 test('sidebar sections show real content, mobile collapse, and gated footer actions', async ({
@@ -66,11 +66,11 @@ test('sidebar sections show real content, mobile collapse, and gated footer acti
   await expect(page.getByRole('button', { name: 'Upload new dataset' })).toHaveCount(0)
 
   // 2. Upload a dataset. Once processing completes (view.kind === 'active')
-  // the viewport shows the default (Overview) section's real content and
+  // the viewport shows the default (Dashboard) section's real content and
   // the footer buttons appear.
   await page.locator('input[type="file"]').setInputFiles(DATASET_A)
   await expect(
-    page.getByRole('heading', { name: 'Dataset overview' }),
+    page.getByRole('heading', { name: 'Dashboard' }),
   ).toBeVisible({ timeout: 15_000 })
 
   // The pipeline auto-starts right after upload and locks the shell under
@@ -92,15 +92,15 @@ test('sidebar sections show real content, mobile collapse, and gated footer acti
   })
   await expect(downloadReportButton).toBeVisible()
 
-  // 3. Overview should be the highlighted/active nav item by default.
-  const overviewNavItem = page.getByRole('button', { name: 'Overview', exact: true })
-  await expect(overviewNavItem).toHaveAttribute('aria-current', 'page')
+  // 3. Dashboard should be the highlighted/active nav item by default.
+  const dashboardNavItem = page.getByRole('button', { name: 'Dashboard', exact: true })
+  await expect(dashboardNavItem).toHaveAttribute('aria-current', 'page')
 
   // 4. Clicking each of the other 7 destinations updates both the
   // highlighted nav item and the viewport's real content, and the
   // "Download report" button stays reachable regardless of active section.
   const sections = [
-    'Dashboard',
+    'Overview',
     'Explanation',
     'Business Insights',
     'Questions',
@@ -114,7 +114,7 @@ test('sidebar sections show real content, mobile collapse, and gated footer acti
       'aria-current',
       'page',
     )
-    await expect(overviewNavItem).not.toHaveAttribute('aria-current', 'page')
+    await expect(dashboardNavItem).not.toHaveAttribute('aria-current', 'page')
     await expect(page.locator('main').getByText(SECTION_CONTENT[label])).toBeVisible()
     await expect(downloadReportButton).toBeVisible()
   }
@@ -159,7 +159,7 @@ test('Data Dictionary keeps its generated content across a section switch, witho
 
   await page.locator('input[type="file"]').setInputFiles(DATASET_A)
   await expect(
-    page.getByRole('heading', { name: 'Dataset overview' }),
+    page.getByRole('heading', { name: 'Dashboard' }),
   ).toBeVisible({ timeout: 15_000 })
 
   // The pipeline (including Data Dictionary's real Mistral call) now runs

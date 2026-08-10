@@ -103,6 +103,33 @@ export function analyzeDataQuality(
   }
 }
 
+/**
+ * An honest "not analyzed yet" placeholder `DataQualityReport` — Phase 10,
+ * Milestone 10.3: `useFileUpload` no longer runs `analyzeDataQuality` at all
+ * (that now happens later, against the cleaned table, inside the pipeline's
+ * `eda` step), but `AnalysisResult`/`PersistedAnalysis` still require a
+ * `DataQualityReport`-shaped value in the meantime so downstream types/UI
+ * don't need a nullable variant. Every count is genuinely zero — never
+ * fabricated or copied from a raw-table scan — so it reads as "nothing found
+ * yet" rather than a stale or misleading result.
+ */
+export function emptyDataQualityReport(): DataQualityReport {
+  return {
+    missingValues: [],
+    duplicateRows: {
+      checkName: 'duplicate-rows',
+      description: 'Not yet analyzed.',
+      count: 0,
+      percentage: 0,
+      affectedColumns: [],
+      sampleItems: [],
+      severity: 'info',
+    },
+    inconsistentCategoricals: [],
+    mixedTypes: [],
+  }
+}
+
 /** True for `null`, `undefined`, NaN, or a blank/whitespace-only string — matches structural.ts's notion of "empty". */
 function isEmptyValue(value: unknown): boolean {
   if (value === null || value === undefined) return true

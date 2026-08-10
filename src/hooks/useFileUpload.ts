@@ -3,9 +3,7 @@ import type { AnalysisResult, UploadState } from '../types/upload'
 import { validateFileExtension } from '../utils/fileValidation'
 import { parseFileToArqueroTable, FileParseError } from '../lib/parsers'
 import { analyzeStructure } from '../lib/analysis/structural'
-import { analyzeNumericColumns } from '../lib/analysis/numeric'
-import { analyzeDataQuality } from '../lib/analysis/quality'
-import { analyzeDateColumns } from '../lib/analysis/dates'
+import { emptyDataQualityReport } from '../lib/analysis/quality'
 
 const INITIAL_STATE: UploadState = {
   status: 'idle',
@@ -17,15 +15,21 @@ const INITIAL_STATE: UploadState = {
 /**
  * Drives the upload state machine: idle -> processing -> success | error.
  *
- * This is the real end-to-end pipeline (Phase 5, Milestone 5.1): on
- * `selectFile`, it parses the file into an Arquero table
- * (`parseFileToArqueroTable`, Phase 2) and then runs Phase 3's four analysis
- * passes against it — structural first, since numeric/quality/date analysis
- * all depend on the `ColumnMetadata[]` structural analysis produces, the
- * same dependency order Phase 3 documents its own modules with. The table
- * and every analysis result are lifted into this hook's state (rather than
- * a separate hook/context) so `success` carries everything downstream
- * components need without re-deriving it or re-parsing the file.
+ * Phase 5, Milestone 5.1 originally ran all four Phase 3 analysis passes
+ * here, synchronously, before ever reaching `'success'`. Phase 10, Milestone
+ * 10.3 shrank that: this hook now parses the file
+ * (`parseFileToArqueroTable`, Phase 2) and runs only structural analysis
+ * (`analyzeStructure`) before transitioning to `'success'` — numeric/
+ * quality/date analysis (Milestones 3.2-3.4) now run later in the real
+ * pipeline (`runPipeline.ts`'s `eda` step), against the *cleaned* table
+ * produced by the new understand-and-plan + ETL-clean steps, not the raw
+ * parse this hook sees. The `AnalysisResult` this hook hands back still
+ * carries `numeric`/`quality`/`dates` fields (so downstream types/components
+ * don't need nullable variants), but they're honest, empty placeholders
+ * (`[]` / `emptyDataQualityReport()`) until `runPipeline` fills them in with
+ * the real post-clean result — see `useDatasetSession.ts`'s `onStepUpdate`
+ * handling of the `eda` step, which is the only place these fields are ever
+ * replaced after this hook hands off.
  *
  * A monotonically increasing request id guards against a stale
  * parse/analysis result (from a superseded file selection, or one that
@@ -70,16 +74,14 @@ export function useFileUpload(
       try {
         const { table, meta } = await parseFileToArqueroTable(file)
 
-        // Structural analysis first — numeric/quality/date analysis all
-        // consume its ColumnMetadata[]. These run synchronously; by this
-        // point the "processing" state above has already been committed
-        // and painted (the `await` on the parser guarantees at least one
-        // tick), so the UI shows a live "Processing..." status for the
-        // full parse+analyze duration rather than looking frozen.
+        // Structural analysis only — the real pipeline (`runPipeline.ts`)
+        // runs numeric/quality/date analysis later, against the cleaned
+        // table. Synchronous; by this point the "processing" state above has
+        // already been committed and painted (the `await` on the parser
+        // guarantees at least one tick), so the UI shows a live
+        // "Processing..." status for the full parse+structural-analyze
+        // duration rather than looking frozen.
         const structural = analyzeStructure(table, file)
-        const numeric = analyzeNumericColumns(table, structural.columns)
-        const quality = analyzeDataQuality(table, structural.columns)
-        const dates = analyzeDateColumns(table, structural.columns)
 
         if (requestIdRef.current !== requestId) return
 
@@ -87,9 +89,11 @@ export function useFileUpload(
           table,
           meta,
           structural,
-          numeric,
-          quality,
-          dates,
+          // Honest placeholders — replaced in place once the pipeline's
+          // `eda` step runs against the cleaned table (see module doc).
+          numeric: [],
+          quality: emptyDataQualityReport(),
+          dates: [],
           uploadedAt,
         }
 

@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { LlmOutputSlot } from '../../types/persistedDataset'
 import { asBusinessInsights } from '../../types/persistedDataset'
-import type { BusinessInsightsResult } from '../../lib/llm/businessInsights'
-import type { InsightGroup, InsightItem } from '../../lib/llm/schema'
+import type { InsightGroup, InsightItem, InsightPriority } from '../../lib/llm/schema'
 import { SkeletonCardGrid, SkeletonList } from '../shared/Skeleton'
 import { CopyButton } from '../shared/CopyButton'
 
@@ -19,27 +18,31 @@ interface BusinessInsightsPanelProps {
 
 /**
  * Milestone 4.3 display component; rewritten Phase 8, Milestone 8.1 into a
- * pure display component. Renders KPIs, insights, and recommendations from
- * the shared `InsightGroup` schema. KPIs render as metric cards (pulling a
- * numeric `value`/`unit` out of `metadata` when the LLM provided one),
- * insights and recommendations render as bulleted lists under clear
- * headings. A single tag-filter control spans all three groups so filtering
- * isn't reinvented per section.
+ * pure display component; reworked again Phase 9, Milestone 9.3 per
+ * beyond-MVP.md's "Business Insight cards" spec and the "Filterable Card
+ * List Checklist" (`docs/development-process.md`).
+ *
+ * KPIs no longer render here — they now live in the top bar's compact cards
+ * (Phase 8, Milestone 8.3) and will live in Dashboard (Milestone 9.1). This
+ * component only renders `insights` and `recommendations`, from the same
+ * `businessInsights` slot the pipeline already produces (`asBusinessInsights`
+ * still decodes all three groups; `data.kpis` is simply left unrendered).
+ *
+ * Design choice: insights and recommendations are kept as two separate,
+ * independently filterable/sortable card sections (each its own
+ * `InsightCardSection`) rather than merged into one list with a
+ * type-facet tag. They're semantically distinct (an "insight" describes
+ * what the data shows, a "recommendation" prescribes what to do about it)
+ * and the underlying `InsightGroup`s already arrive as two groups with their
+ * own labels/bounds — keeping them separate preserves that distinction
+ * without inventing a synthetic "type" tag, while both sections reuse the
+ * exact same `InsightCardSection` component so their filter/sort UX matches.
  *
  * No longer owns any `useLlmRequest`/trigger logic — the pipeline generates
  * this automatically; this component only ever renders `slot`.
  */
 export function BusinessInsightsPanel({ slot }: BusinessInsightsPanelProps) {
-  const [selectedTag, setSelectedTag] = useState<string | null>(null)
-
   const data = useMemo(() => asBusinessInsights(slot), [slot])
-
-  const allTags = useMemo(() => collectAllTags(data), [data])
-  // Derived rather than synced via an effect: if the selected tag no longer
-  // exists (e.g. new data loaded), treat the filter as cleared without an
-  // extra render pass.
-  const effectiveSelectedTag =
-    selectedTag && allTags.includes(selectedTag) ? selectedTag : null
 
   if (slot.status === 'pending' || slot.status === 'running') {
     return (
@@ -90,70 +93,172 @@ export function BusinessInsightsPanel({ slot }: BusinessInsightsPanelProps) {
         </h2>
       </div>
 
-      {allTags.length > 0 && (
-        <TagFilterBar
-          tags={allTags}
-          selectedTag={effectiveSelectedTag}
-          onSelectTag={setSelectedTag}
-        />
-      )}
-
-      <KpiSection group={data.kpis} selectedTag={effectiveSelectedTag} />
-      <BulletSection group={data.insights} selectedTag={effectiveSelectedTag} />
-      <BulletSection
-        group={data.recommendations}
-        selectedTag={effectiveSelectedTag}
-      />
+      <InsightCardSection group={data.insights} />
+      <InsightCardSection group={data.recommendations} />
     </section>
   )
 }
 
-/** Collects the union of every tag across all three groups, sorted alphabetically. */
-function collectAllTags(data: BusinessInsightsResult | null): string[] {
-  if (!data) return []
+/** Ranks a priority high→low for sorting; missing priority sorts last (defensively — `businessInsights.ts` should always populate it). */
+function priorityRank(priority: InsightPriority | undefined): number {
+  switch (priority) {
+    case 'high':
+      return 3
+    case 'medium':
+      return 2
+    case 'low':
+      return 1
+    default:
+      return 0
+  }
+}
+
+/** Derives the sorted, deduplicated set of tags actually present across `group`'s items. */
+function collectTags(group: InsightGroup): string[] {
   const tags = new Set<string>()
-  for (const group of [data.kpis, data.insights, data.recommendations]) {
-    for (const item of group.items) {
-      for (const tag of item.tags) tags.add(tag)
-    }
+  for (const item of group.items) {
+    for (const tag of item.tags) tags.add(tag)
   }
   return Array.from(tags).sort((a, b) => a.localeCompare(b))
 }
 
-function itemMatchesTag(item: InsightItem, selectedTag: string | null) {
-  return !selectedTag || item.tags.includes(selectedTag)
+interface InsightCardSectionProps {
+  group: InsightGroup
 }
 
-interface TagFilterBarProps {
-  tags: string[]
-  selectedTag: string | null
-  onSelectTag: (tag: string | null) => void
-}
+/**
+ * One filterable, sortable card section — used for both `insights` and
+ * `recommendations` so their filter/sort UX matches exactly. Owns its own
+ * tag-filter and importance-sort state (per the checklist: state stays local
+ * to *this* section, not shared globally across sections).
+ *
+ * Tag filtering is multi-select AND: an item must carry every selected tag
+ * to remain visible. AND was chosen (over OR) because it's what makes the
+ * "no items match" empty state reachable using only tags actually present
+ * on real items (pick two tags that individually match different items but
+ * never co-occur on the same one) — an OR filter built only from
+ * present-tag options can never produce an empty result.
+ */
+function InsightCardSection({ group }: InsightCardSectionProps) {
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [sortByImportance, setSortByImportance] = useState(false)
 
-/** Shared tag-filter control spanning KPIs, insights, and recommendations. */
-function TagFilterBar({ tags, selectedTag, onSelectTag }: TagFilterBarProps) {
+  const availableTags = useMemo(() => collectTags(group), [group])
+  // Derived rather than synced via an effect: if a selected tag no longer
+  // exists (e.g. new data loaded), treat it as cleared without an extra
+  // render pass.
+  const effectiveSelectedTags = useMemo(
+    () => selectedTags.filter((tag) => availableTags.includes(tag)),
+    [selectedTags, availableTags],
+  )
+
+  const visibleItems = useMemo(() => {
+    const filtered = group.items.filter((item) =>
+      effectiveSelectedTags.every((tag) => item.tags.includes(tag)),
+    )
+    if (!sortByImportance) return filtered
+    // `Array.prototype.sort` is spec-guaranteed stable (ES2019+), so items
+    // of equal priority keep their original relative order.
+    return [...filtered].sort(
+      (a, b) => priorityRank(b.priority) - priorityRank(a.priority),
+    )
+  }, [group.items, effectiveSelectedTags, sortByImportance])
+
+  function toggleTag(tag: string) {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+    )
+  }
+
+  const sectionHeadingId = `${group.type}-heading`
+
   return (
-    <div
-      role="group"
-      aria-label="Filter insights by tag"
-      className="flex flex-wrap items-center gap-2"
-    >
-      <span className="text-xs font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400">
-        Filter by tag
-      </span>
-      <FilterChip
-        label="All"
-        isSelected={selectedTag === null}
-        onClick={() => onSelectTag(null)}
-      />
-      {tags.map((tag) => (
-        <FilterChip
-          key={tag}
-          label={tag}
-          isSelected={selectedTag === tag}
-          onClick={() => onSelectTag(tag)}
-        />
-      ))}
+    <div aria-labelledby={sectionHeadingId}>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h3
+          id={sectionHeadingId}
+          className="text-base font-semibold text-slate-900 dark:text-slate-100"
+        >
+          {group.label}
+        </h3>
+        {visibleItems.length > 0 && (
+          <CopyButton
+            text={visibleItems
+              .map((item) => `${item.title}\n${item.description}`)
+              .join('\n\n')}
+            label={`Copy all ${group.label.toLowerCase()}`}
+          />
+        )}
+      </div>
+
+      <div className="mb-3 flex flex-wrap items-center gap-3">
+        {availableTags.length > 0 && (
+          <div
+            role="group"
+            aria-label={`Filter ${group.label.toLowerCase()} by tag`}
+            className="flex flex-wrap items-center gap-2"
+          >
+            <span className="text-xs font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400">
+              Filter by tag
+            </span>
+            {availableTags.map((tag) => (
+              <FilterChip
+                key={tag}
+                label={tag}
+                isSelected={effectiveSelectedTags.includes(tag)}
+                onClick={() => toggleTag(tag)}
+              />
+            ))}
+            {effectiveSelectedTags.length > 0 && (
+              <FilterChip
+                label="Clear"
+                isSelected={false}
+                onClick={() => setSelectedTags([])}
+              />
+            )}
+          </div>
+        )}
+
+        <button
+          type="button"
+          aria-pressed={sortByImportance}
+          onClick={() => setSortByImportance((prev) => !prev)}
+          className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+            sortByImportance
+              ? 'border-blue-600 bg-blue-600 text-white dark:border-blue-500 dark:bg-blue-500'
+              : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+          }`}
+        >
+          Sort by importance (high → low)
+        </button>
+      </div>
+
+      {visibleItems.length === 0 ? (
+        <EmptyAfterFilter />
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {visibleItems.map((item) => (
+            <li
+              key={item.id}
+              className="flex items-start justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-slate-900 dark:text-slate-100">
+                  {item.title}
+                </p>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                  {item.description}
+                </p>
+                <ItemTags item={item} />
+              </div>
+              <CopyButton
+                text={`${item.title}\n\n${item.description}`}
+                label={`Copy: ${item.title}`}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
@@ -181,130 +286,15 @@ function FilterChip({ label, isSelected, onClick }: FilterChipProps) {
   )
 }
 
-interface GroupSectionProps {
-  group: InsightGroup
-  selectedTag: string | null
-}
-
-/** KPIs render as a grid of metric cards. */
-function KpiSection({ group, selectedTag }: GroupSectionProps) {
-  const items = group.items.filter((item) => itemMatchesTag(item, selectedTag))
-
-  return (
-    <div>
-      <h3 className="mb-2 text-base font-semibold text-slate-900 dark:text-slate-100">
-        {group.label}
-      </h3>
-      {items.length === 0 ? (
-        <EmptyAfterFilter />
-      ) : (
-        <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((item) => (
-            <KpiCard key={item.id} item={item} />
-          ))}
-        </dl>
-      )}
-    </div>
-  )
-}
-
-function KpiCard({ item }: { item: InsightItem }) {
-  const metricValue = extractMetricValue(item)
-
-  return (
-    <div className="flex flex-col gap-1 rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <dt className="text-xs font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400">
-        {item.title}
-      </dt>
-      {metricValue ? (
-        <dd className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-          {metricValue}
-        </dd>
-      ) : null}
-      <dd
-        className={
-          metricValue
-            ? 'text-sm text-slate-600 dark:text-slate-400'
-            : 'text-lg font-semibold text-slate-900 dark:text-slate-100'
-        }
-      >
-        {item.description}
-      </dd>
-      <ItemTags item={item} />
-    </div>
-  )
-}
-
-/** Pulls a displayable `"<value> <unit>"` string out of `item.metadata`, if the LLM provided one. */
-function extractMetricValue(item: InsightItem): string | null {
-  const metadata = item.metadata
-  if (!metadata) return null
-  const value = metadata.value
-  if (typeof value !== 'number' && typeof value !== 'string') return null
-  const unit = typeof metadata.unit === 'string' ? metadata.unit : ''
-  const formattedValue =
-    typeof value === 'number' ? value.toLocaleString() : value
-  return unit ? `${formattedValue} ${unit}` : `${formattedValue}`
-}
-
-/** Insights and recommendations render as bullet lists under a heading. */
-function BulletSection({ group, selectedTag }: GroupSectionProps) {
-  const items = group.items.filter((item) => itemMatchesTag(item, selectedTag))
-
-  return (
-    <div>
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-          {group.label}
-        </h3>
-        {items.length > 0 && (
-          <CopyButton
-            text={items
-              .map((item) => `${item.title}\n${item.description}`)
-              .join('\n\n')}
-            label={`Copy all ${group.label.toLowerCase()}`}
-          />
-        )}
-      </div>
-      {items.length === 0 ? (
-        <EmptyAfterFilter />
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {items.map((item) => (
-            <li
-              key={item.id}
-              className="flex items-start justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="font-medium text-slate-900 dark:text-slate-100">
-                  {item.title}
-                </p>
-                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                  {item.description}
-                </p>
-                <ItemTags item={item} />
-              </div>
-              <CopyButton
-                text={`${item.title}\n\n${item.description}`}
-                label={`Copy: ${item.title}`}
-              />
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  )
-}
-
+/** Importance badge — always shown (priority is now a required, normalized field), not just when present. */
 function ItemTags({ item }: { item: InsightItem }) {
-  if (item.tags.length === 0 && !item.priority) return null
   return (
     <div className="mt-2 flex flex-wrap gap-1">
-      {item.priority && (
-        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-          {item.priority}
-        </span>
-      )}
+      <span
+        className={`rounded-full px-2 py-0.5 text-xs font-medium ${priorityBadgeClasses(item.priority)}`}
+      >
+        {item.priority ?? 'medium'} importance
+      </span>
       {item.tags.map((tag) => (
         <span
           key={tag}
@@ -317,10 +307,22 @@ function ItemTags({ item }: { item: InsightItem }) {
   )
 }
 
+function priorityBadgeClasses(priority: InsightPriority | undefined): string {
+  switch (priority) {
+    case 'high':
+      return 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
+    case 'low':
+      return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+    case 'medium':
+    default:
+      return 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+  }
+}
+
 function EmptyAfterFilter() {
   return (
     <p className="text-sm text-slate-500 dark:text-slate-400">
-      No items match the selected tag.
+      No items match the selected tag filters.
     </p>
   )
 }

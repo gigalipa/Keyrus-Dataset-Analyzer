@@ -47,10 +47,10 @@ test('upload, switch, delete, and reload flow through the History panel and uplo
   // in-memory before the async IndexedDB write). As of Phase 7 Milestone
   // 7.3, the center viewport (`MainViewport`) shows real per-section
   // content, so "processing complete" is asserted via the default
-  // Overview section's real heading.
+  // Dashboard section's real heading.
   await page.locator('input[type="file"]').setInputFiles(DATASET_A)
   await expect(
-    page.getByRole('heading', { name: 'Dataset overview' }),
+    page.getByRole('heading', { name: 'Dashboard' }),
   ).toBeVisible({ timeout: 15_000 })
   // Modal should be gone once results show.
   await expect(page.getByRole('dialog', { name: /upload/i })).toBeHidden()
@@ -72,7 +72,7 @@ test('upload, switch, delete, and reload flow through the History panel and uplo
 
   await page.locator('input[type="file"]').setInputFiles(DATASET_B)
   await expect(
-    page.getByRole('heading', { name: 'Dataset overview' }),
+    page.getByRole('heading', { name: 'Dashboard' }),
   ).toBeVisible({ timeout: 15_000 })
 
   // Dataset B's own pipeline must finish (overlay clears) before History
@@ -93,7 +93,7 @@ test('upload, switch, delete, and reload flow through the History panel and uplo
   const clickedAt = Date.now()
   await historyDialog.getByText('lakeside_orders_sample.csv').click()
   await expect(
-    page.getByRole('heading', { name: 'Dataset overview' }),
+    page.getByRole('heading', { name: 'Dashboard' }),
   ).toBeVisible()
   const elapsedMs = Date.now() - clickedAt
   expect(elapsedMs).toBeLessThan(2000)
@@ -122,7 +122,7 @@ test('upload, switch, delete, and reload flow through the History panel and uplo
   await page.reload()
   await expect(page.getByRole('dialog', { name: /upload/i })).toBeHidden()
   await expect(
-    page.getByRole('heading', { name: 'Dataset overview' }),
+    page.getByRole('heading', { name: 'Dashboard' }),
   ).toBeVisible({ timeout: 15_000 })
   // Nothing left to resume, so the overlay (up briefly only for the initial
   // IndexedDB-hydration check) should already be gone.

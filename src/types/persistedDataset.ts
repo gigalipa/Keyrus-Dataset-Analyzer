@@ -32,6 +32,8 @@ import type { DataQualityReport } from '../lib/analysis/quality'
 import type { DateColumnAnalysis } from '../lib/analysis/dates'
 import type { InsightGroup } from '../lib/llm/schema'
 import type { BusinessInsightsResult } from '../lib/llm/businessInsights'
+import type { CleaningPlan } from '../lib/llm/cleaningPlan'
+import type { AuditTrail } from '../lib/etl/applyCleaningPlan'
 
 /**
  * The cleaned/normalized table, serialized as plain data instead of an
@@ -59,9 +61,31 @@ export function hydrateCleanedTable(cleaned: CleanedTable): aq.ColumnTable {
 }
 
 /**
+ * Reconstitutes a record's untouched `rawTable` (`NormalizedTable`, plain
+ * pre-Arquero rows) back into a live Arquero `ColumnTable` — same
+ * `aq.from(rows)` construction as `hydrateCleanedTable`, just from the raw
+ * side of the record. Needed by `rerunAnalysis` (Phase 10, Milestone 10.3):
+ * a genuine "start over" must re-derive the cleaning plan and cleaned table
+ * from the true raw parse, not from whatever `cleanedTable` currently holds
+ * (which, once cleaning has run once, is no longer the raw data).
+ */
+export function hydrateRawTable(rawTable: NormalizedTable): aq.ColumnTable {
+  return aq.from(rawTable.rows)
+}
+
+/**
  * The four Phase 3 analysis outputs, i.e. everything `AnalysisResult`
  * carries except `table` (superseded by `CleanedTable` above) and `meta`
  * (superseded by `rawTable` on `PersistedDataset`).
+ *
+ * Phase 10, Milestone 10.3: `structural` is computed once, synchronously, at
+ * upload time against the RAW table, and never recomputed — only
+ * `numeric`/`quality`/`dates` move to run against the cleaned table, per the
+ * roadmap's explicit scoping (structural analysis stays "raw"). Until the
+ * pipeline's `eda` step actually runs, `numeric`/`quality`/`dates` hold
+ * harmless empty placeholders (see `emptyEdaResult` in `runPipeline.ts`) —
+ * never raw-table numbers — so the UI is either honestly "not analyzed yet"
+ * or showing the real post-clean result, never a stale raw-parse artifact.
  */
 export interface PersistedAnalysis {
   structural: StructuralAnalysis
@@ -70,8 +94,24 @@ export interface PersistedAnalysis {
   dates: DateColumnAnalysis[]
 }
 
-/** Lifecycle of one LLM-generated output within a persisted record. */
-export type LlmOutputStatus = 'pending' | 'running' | 'done' | 'error'
+/** Lifecycle of one pipeline step's output within a persisted record — LLM or not. */
+export type StepStatus = 'pending' | 'running' | 'done' | 'error'
+
+/** Back-compat alias — same lifecycle, `LlmOutputSlot`'s original name for it. */
+export type LlmOutputStatus = StepStatus
+
+/**
+ * One pipeline step's output slot, generic over its `data` shape so the same
+ * resumable status-tracking shape (Phase 8's original `LlmOutputSlot`
+ * pattern) covers both the four LLM-generated display outputs and Phase 10's
+ * new non-LLM steps (`cleaning`, `eda`), which don't produce `InsightGroup`s
+ * but still need "did this already finish" tracked durably for resume.
+ */
+export interface StepSlot<T> {
+  status: StepStatus
+  data: T | null
+  errorMessage?: string
+}
 
 /**
  * One LLM output slot. `data` is `InsightGroup` for single-group outputs
@@ -81,24 +121,54 @@ export type LlmOutputStatus = 'pending' | 'running' | 'done' | 'error'
  * both shapes since the exact per-output cardinality is a Phase 4/9 UI
  * concern, not a storage concern.
  */
-export interface LlmOutputSlot {
-  status: LlmOutputStatus
-  data: InsightGroup | InsightGroup[] | null
-  errorMessage?: string
-}
+export type LlmOutputSlot = StepSlot<InsightGroup | InsightGroup[]>
 
-function pendingSlot(): LlmOutputSlot {
+/** Generic factory for a fresh, `pending` step slot of any shape. */
+export function pendingStepSlot<T>(): StepSlot<T> {
   return { status: 'pending', data: null }
 }
 
 /** Convenience factory for a fresh record's four LLM slots, all `pending`. */
 export function createPendingLlmOutputs(): PersistedDataset['llmOutputs'] {
   return {
-    dataDictionary: pendingSlot(),
-    businessInsights: pendingSlot(),
-    explanation: pendingSlot(),
-    clientQuestions: pendingSlot(),
+    dataDictionary: pendingStepSlot(),
+    businessInsights: pendingStepSlot(),
+    explanation: pendingStepSlot(),
+    clientQuestions: pendingStepSlot(),
   }
+}
+
+/**
+ * Convenience factory for a fresh record's three Phase 10 non-LLM-slot-name
+ * fields (`cleaningPlan`, `cleaning`, `eda`), all `pending` — paired with
+ * `createPendingLlmOutputs` at record-creation time (Milestone 10.1-10.3).
+ */
+export function createPendingPipelineExtras(): Pick<
+  PersistedDataset,
+  'cleaningPlan' | 'cleaning' | 'eda'
+> {
+  return {
+    cleaningPlan: pendingStepSlot<CleaningPlan>(),
+    cleaning: pendingStepSlot<AuditTrail>(),
+    eda: pendingStepSlot<null>(),
+  }
+}
+
+/**
+ * `true` if any pipeline step — the four LLM outputs or Phase 10's
+ * `cleaningPlan`/`cleaning`/`eda` — hasn't finished yet. Used to decide
+ * whether a loaded/just-created dataset needs `runPipeline` invoked
+ * (fresh-upload auto-trigger, or resume-on-reload).
+ */
+export function isDatasetPipelineIncomplete(
+  record: Pick<PersistedDataset, 'cleaningPlan' | 'cleaning' | 'eda' | 'llmOutputs'>,
+): boolean {
+  return (
+    record.cleaningPlan.status !== 'done' ||
+    record.cleaning.status !== 'done' ||
+    record.eda.status !== 'done' ||
+    Object.values(record.llmOutputs).some((slot) => slot.status !== 'done')
+  )
 }
 
 /**
@@ -114,15 +184,44 @@ export interface PersistedDataset {
   uploadedAt: number
   /** The untouched parse — pre-Arquero, pre-normalization — for the raw-vs-cleaned comparison view (Phase 6 spec). */
   rawTable: NormalizedTable
-  /** The cleaned/normalized table, serialized as plain data (see `CleanedTable`). */
+  /**
+   * The cleaned/normalized table, serialized as plain data (see
+   * `CleanedTable`). Phase 10, Milestone 10.3: genuinely reflects
+   * `applyCleaningPlan`'s output once the `cleaning` step below finishes —
+   * before that (record just created, `cleaning.status !== 'done'`), it's an
+   * honest placeholder identical to `rawTable` (no cleaning has happened
+   * yet), never a silently-stale "cleaned" table that was never cleaned.
+   */
   cleanedTable: CleanedTable
-  /** Phase 3's four analysis passes. */
+  /** Phase 3's four analysis passes — `numeric`/`quality`/`dates` now run against the cleaned table (see `PersistedAnalysis`'s doc comment). */
   analysis: PersistedAnalysis
-  /** The three (soon four, once Phase 9 adds `explanation`) LLM-generated outputs, each independently resumable. */
+  /**
+   * Phase 10, Milestone 10.1's LLM-authored cleaning plan (`generateCleaningPlan`,
+   * `src/lib/llm/cleaningPlan.ts`) — the `cleaning` step below mechanically
+   * applies this to `rawTable` to produce `cleanedTable`. Runs concurrently
+   * with `llmOutputs.dataDictionary`, both consuming the same raw
+   * structural/quality context.
+   */
+  cleaningPlan: StepSlot<CleaningPlan>
+  /**
+   * Phase 10, Milestone 10.2's ETL-apply step: status plus the resulting
+   * audit trail (every applied/skipped change, Milestone 10.5's display
+   * source). The actual resulting table lives in `cleanedTable` above, not
+   * duplicated here — this slot's `data` is only the audit trail.
+   */
+  cleaning: StepSlot<AuditTrail>
+  /**
+   * Phase 10, Milestone 10.3's post-clean EDA step marker. The real
+   * `numeric`/`quality`/`dates` results live in `analysis` above (not
+   * duplicated here) — this slot exists purely so resume-on-reload can tell
+   * whether that recompute has actually happened yet, distinguishing "not
+   * run yet" from "ran and found nothing." `data` is always `null`.
+   */
+  eda: StepSlot<null>
+  /** The four LLM-generated display outputs, each independently resumable. */
   llmOutputs: {
     dataDictionary: LlmOutputSlot
     businessInsights: LlmOutputSlot
-    /** Reserved for Phase 9 ("explanation" narrative); unused until then. */
     explanation: LlmOutputSlot
     clientQuestions: LlmOutputSlot
   }
