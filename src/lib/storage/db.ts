@@ -127,16 +127,3 @@ export async function deleteDataset(id: string): Promise<void> {
   const db = await getDb()
   await db.delete(STORE_NAME, id)
 }
-
-/**
- * Test-only escape hatch: closes and forgets the cached DB connection, so a
- * subsequent call re-opens a fresh one (used to reset state between test
- * cases running against `fake-indexeddb`).
- */
-export async function __resetDbConnectionForTests(): Promise<void> {
-  if (dbPromise) {
-    const db = await dbPromise
-    db.close()
-    dbPromise = null
-  }
-}

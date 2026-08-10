@@ -1,6 +1,0 @@
-product_id,product_name,category,price,in_stock
-P-001,Widget A,Hardware,12.5,true
-P-002,Widget B,Hardware,15.0,false
-P-003,Gadget C,Electronics,99.99,true
-P-004,Gadget D,Electronics,150.0,true
-P-005,Gizmo E,Toys,7.25,false
