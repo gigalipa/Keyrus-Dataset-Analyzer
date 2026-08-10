@@ -1,6 +1,6 @@
 # Keyrus Dataset Analyzer
 
-A React/Tailwind web app for consultant-first data assessment — **MVP complete (Phases 1–5)**.
+A React/Tailwind web app for consultant-first data assessment.
 
 ## Summary
 
@@ -26,11 +26,12 @@ npm install
 
 # 2. Configure API keys
 cp .env.example .env
-# then edit .env and fill in VITE_MISTRAL_API_KEY / VITE_MISTRAL_MODEL_ID /
-# VITE_MISTRAL_FALLBACK_MODEL_ID and VITE_GOOGLE_API_KEY / VITE_GOOGLE_MODEL_ID /
-# VITE_GOOGLE_FALLBACK_MODEL_ID with your own keys and chosen model IDs.
-# Keys are read client-side (Vite's VITE_-prefixed env vars) — never entered
-# through the app's UI, and .env is git-ignored.
+# then edit .env and fill in VITE_MISTRAL_API_KEY and VITE_GOOGLE_API_KEY
+# with your own keys, and
+# / VITE_MISTRAL_MODEL_ID / VITE_MISTRAL_FALLBACK_MODEL_ID /
+# VITE_GOOGLE_MODEL_ID / VITE_GOOGLE_FALLBACK_MODEL_ID
+# with your chosen model IDs, or leave the predefined ones.
+# Keys are read client-side (Vite's VITE_-prefixed env vars).
 
 # 3. Run the dev server
 npm run dev
@@ -86,8 +87,7 @@ Full task-level detail lives in [docs/development-process.md](docs/development-p
 
 Time actually spent, derived from `git log` timestamps, plus the untracked planning/setup work that preceded the first commit. The MVP (Phases 1–5) landed same-day, 2026-08-08; the beyond-MVP batch (Phases 6–11) ran 2026-08-09.
 
-### MVP (Phases 1–5) — actual
-
+### MVP (Phases 1–5)
 | Stage | Span | Duration |
 |---|---|---|
 | Planning & tool readiness *(MCPs, CLI, Skills, GitHub repo setup — not captured in commit history)* | before 09:42 | ~2h 00m |
@@ -101,20 +101,17 @@ Time actually spent, derived from `git log` timestamps, plus the untracked plann
 | AFK Time for lunch and other personal affairs | 12:00 → 13:00 / 14:00 → 16:00 | 3h |
 | **Total, planning through MVP close-out** | 09:42 → 16:34 (+2h pre-work - 3h AFK) | **~5h 52m** |
 
-### Phases 6–11 (beyond-MVP batch) — actual
-
-All six phases are done. Timed the same way as the MVP table above: real spans between `git log` commit timestamps, each phase's start being the previous phase's completion commit. The one multi-day gap (planning commit on 2026-08-08 evening → Phase 6's first commit the next morning) is excluded, same treatment as the MVP table's lunch AFK time.
-
-| Phase | Span | Duration |
+### Phases 6–11 (beyond-MVP batch)
+| Stage | Span | Duration |
 |---|---|---|
-| 6 — Persistent Storage & Multi-Dataset History | 05:10 → 05:34 | 23m |
-| 7 — Application Shell Redesign | 05:34 → 07:38 | 1h 04m |
+| Phase 6 — Persistent Storage & Multi-Dataset History | 05:10 → 05:34 | 23m |
+| Phase 7 — Application Shell Redesign | 05:34 → 07:38 | 1h 04m |
 | AFK time for yoga | 6:30 → 7:30 | 1h |
-| 8 — Automated Sequential LLM Pipeline & Loading Experience | 07:38 → 09:07 | 1h 29m |
+| Phase 8 — Automated Sequential LLM Pipeline & Loading Experience | 07:38 → 09:07 | 1h 29m |
 | AFK time for breakfast | 8:00 → 9:00 | 1h |
-| 9–10 — Business-Facing Views & LLM-Informed Cleaning/Data Views Rework *(one combined commit — see `docs/orchestration-plan.md` for why)* | 11:07 → 20:02 | 8h 55m |
+| Phases 9–10 — Business-Facing Views & LLM-Informed Cleaning/Data Views Rework *(one combined commit — see `docs/orchestration-plan.md` for why)* | 11:07 → 20:02 | 8h 55m |
 | AFK time for lunch and personal affairs | 12:00 → 17:00 | 5h |
-| 11 — PDF Report & Final Polish | 20:02 → 22:11 | 2h 09m |
+| Phase 11 — PDF Report & Final Polish | 20:02 → 22:11 | 2h 09m |
 | AFK time for dinner & family time | 20:30 → 22:00 | 1h 30m |
 | README sync (Requirements/Installation) | 22:11 → 22:19 | 8m |
 | **Total, Phases 6–11** | 05:10 → 22:19 (-8h 30m AFK) | **5h 39m** |
@@ -129,8 +126,6 @@ The 11-phase roadmap defined by `docs/project-description.md`/`docs/beyond-MVP.m
 - **Track model/version currency.** `.env.example` pins specific Mistral/Gemini model IDs that will age as both providers ship newer versions — periodically re-verify the configured primary/fallback pair still exists and re-check output quality after any change, since a model swap can shift both structured-output reliability and the kind of judgment calls (like the age-summing one) the prompts now rely on the model to make correctly.
 - **Compare the two providers on domain-sensitive tasks.** Data dictionary/business insights run on Mistral, client questions on Gemini — worth occasionally checking whether both follow the "reason about the dataset's business domain first" instruction equally well, since prompt-following quality can differ between providers even with identical wording.
 - **Multi-language LLM output**, if it ever becomes relevant — already flagged in the original roadmap as a deferred, revisit-when-needed item ("if international clients are targeted"). Since every user-facing string this app generates is prompt-driven, this would stay a small, contained prompt change (a language parameter in the system prompt), not an architectural one.
-
-Two smaller, non-LLM items also still stand: production bundle code-splitting (the three LLM panels are already lazy-loaded; there's more room, e.g. splitting Excel/SQL parsing out of the main chunk), and literal Safari verification on macOS (cross-browser checking so far used Playwright's WebKit build on Windows as the closest available proxy — see `NOTES.md`).
 
 ## How to Contribute
 
