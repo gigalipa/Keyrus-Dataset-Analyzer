@@ -8,6 +8,46 @@ This project helps consultants quickly profile and assess raw customer datasets 
 
 The app runs entirely in the browser with no backend: client-side parsing and transformation (Arquero), plus LLM-driven narrative generation for human-friendly output.
 
+## Requirements
+
+- **Node.js** `^20.19.0` or `>=22.12.0` (required by Vite 8; matches the `engines` field Vite itself declares) — any current LTS release satisfies this. **npm** ships with Node, no separate install needed.
+- **API keys for the two LLM providers** the app calls directly from the browser (this is a no-backend app — there's nothing else to run or host):
+  - A [Mistral API key](https://console.mistral.ai/api-keys) — powers the data dictionary and business insights.
+  - A [Google AI Studio (Gemini) API key](https://aistudio.google.com/app/api-keys) — powers the client questions.
+- A modern browser — latest Chrome, Firefox, Safari, or Edge.
+
+## Installation
+
+```bash
+# 1. Clone the repo and install dependencies
+git clone <this-repo-url>
+cd lakeside-keyrus
+npm install
+
+# 2. Configure API keys
+cp .env.example .env
+# then edit .env and fill in VITE_MISTRAL_API_KEY / VITE_MISTRAL_MODEL_ID /
+# VITE_MISTRAL_FALLBACK_MODEL_ID and VITE_GOOGLE_API_KEY / VITE_GOOGLE_MODEL_ID /
+# VITE_GOOGLE_FALLBACK_MODEL_ID with your own keys and chosen model IDs.
+# Keys are read client-side (Vite's VITE_-prefixed env vars) — never entered
+# through the app's UI, and .env is git-ignored.
+
+# 3. Run the dev server
+npm run dev
+# open the printed local URL (defaults to http://localhost:5173)
+```
+
+Other useful commands, once installed:
+
+```bash
+npm run build          # type-check (tsc -b) + production build
+npm run lint            # eslint
+npx tsc -b --noEmit     # type-check only
+npm run test             # unit tests (vitest)
+npx playwright install   # one-time: install browser binaries for e2e tests
+npx playwright test      # end-to-end tests (real browsers, hits the live LLM APIs above)
+```
+
 ## Current Status
 
 - **MVP complete, not yet a fully developed product.** Phases 1–5 (Foundation & Upload, Data Ingestion Pipeline, Data Analysis Engine, LLM-Powered Insights, Results Presentation & Polish) are done; see [docs/development-process.md](docs/development-process.md) for the fully checked-off task list. Live MVP testing showed the interface is comprehensive at a data-analysis level but not yet easy to use for non-technical, non-data-educated users — **Phases 6–11**, planned from [docs/beyond-MVP.md](docs/beyond-MVP.md), rework the app into a persistent, dashboard-style tool (local multi-dataset history, an automatic LLM analysis pipeline, a top-bar/sidebar shell, business-facing dashboard views, and a real PDF report) and are the next step before this is a fully developed product, not an afterthought.
