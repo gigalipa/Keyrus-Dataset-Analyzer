@@ -1,3 +1,5 @@
+import { formatTimestamp } from '../../utils/formatTimestamp'
+
 interface DataOverviewCardProps {
   /** Uploaded file name. */
   fileName: string
@@ -29,12 +31,18 @@ export function DataOverviewCard({
       aria-labelledby="data-overview-heading"
       className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 dark:border-slate-800 dark:bg-slate-900"
     >
-      <h2
-        id="data-overview-heading"
-        className="text-lg font-semibold text-slate-900 dark:text-slate-100"
-      >
-        Dataset overview
-      </h2>
+      <div>
+        <h2
+          id="data-overview-heading"
+          className="text-lg font-semibold text-slate-900 dark:text-slate-100"
+        >
+          Dataset overview
+        </h2>
+        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+          Reflects the cleaned dataset, after automated cleaning normalized
+          the raw upload.
+        </p>
+      </div>
 
       <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <OverviewStat label="File name" value={fileName} title={fileName} />
@@ -79,12 +87,4 @@ function formatFileSize(fileSizeMB: number): string {
     return `${Math.round(fileSizeMB * 1024).toLocaleString()} KB`
   }
   return `${fileSizeMB.toFixed(2)} MB`
-}
-
-/** Formats an upload timestamp as a locale-aware date + time string. */
-function formatTimestamp(uploadedAt: number): string {
-  return new Date(uploadedAt).toLocaleString(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  })
 }

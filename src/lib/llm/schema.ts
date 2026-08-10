@@ -34,9 +34,22 @@
  */
 import { z } from 'zod'
 
-/** The five kinds of structured content the LLM providers generate for this app. */
+/**
+ * The kinds of structured content the LLM providers generate for this app.
+ * `explanation` (Phase 8, Milestone 8.1) is a single-item group — the
+ * automated pipeline's plain-language "business model / health / what's
+ * good / what to watch" narrative (`docs/beyond-MVP.md`'s Explanation
+ * section) — modeled as an `InsightGroup` like everything else rather than
+ * a bespoke shape, so it goes through the same schema validation and
+ * persistence path as the other four.
+ */
 export type InsightType =
-  'kpi' | 'insight' | 'recommendation' | 'question' | 'dictionaryEntry'
+  | 'kpi'
+  | 'insight'
+  | 'recommendation'
+  | 'question'
+  | 'dictionaryEntry'
+  | 'explanation'
 
 /** Priority/severity hint an item can carry for display and filtering. */
 export type InsightPriority = 'high' | 'medium' | 'low'
@@ -96,6 +109,7 @@ export const INSIGHT_TYPE_BOUNDS: Record<InsightType, InsightTypeBounds> = {
   recommendation: { label: 'Recommendations', min: 3, zodMax: 8 },
   question: { label: 'Client Questions', min: 2, zodMax: 10 },
   dictionaryEntry: { label: 'Data Dictionary', min: 0, zodMax: 500 },
+  explanation: { label: 'Explanation', min: 1, max: 1, zodMax: 1 },
 }
 
 // ---------------------------------------------------------------------------
@@ -108,6 +122,7 @@ const insightTypeSchema = z.enum([
   'recommendation',
   'question',
   'dictionaryEntry',
+  'explanation',
 ])
 
 const insightPrioritySchema = z.enum(['high', 'medium', 'low'])
@@ -159,8 +174,30 @@ export function buildInsightGroupSchema(
       .refine(
         (items) => items.every((item) => item.type === type),
         `Every item's "type" must equal the group's type ("${type}").`,
+      )
+      .refine(
+        (items) => type !== 'kpi' || items.every((item) => hasNonEmptyMetricValue(item)),
+        'Every "kpi" item must set a non-empty metadata.value (its computed/estimated figure) — a KPI card with no value defeats the point of a KPI.',
       ),
   })
+}
+
+/**
+ * `true` if `item.metadata.value` is a real, displayable figure — a number,
+ * or a non-blank string (e.g. "4.2" or "92%" the model couldn't express as
+ * a bare number). Used to enforce that every `'kpi'` item actually carries a
+ * value rather than falling back to describing it qualitatively — found in
+ * live testing (Phase 9/10 boundary) that the original "where possible"
+ * prompt wording let the model skip `metadata` for KPIs it found harder to
+ * quantify (e.g. a rate/percentage), leaving those cards showing only a
+ * truncated description with no number — the one thing a KPI card exists to
+ * show.
+ */
+function hasNonEmptyMetricValue(item: InsightItem): boolean {
+  const value = item.metadata?.value
+  if (typeof value === 'number') return Number.isFinite(value)
+  if (typeof value === 'string') return value.trim().length > 0
+  return false
 }
 
 /** Thrown by `parseInsightGroup` when the raw payload fails schema validation. Carries zod's issue list for building a corrective retry message. */

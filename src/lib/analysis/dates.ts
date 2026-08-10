@@ -90,6 +90,20 @@ const ISO_DATE_RE =
 /** Purely numeric date with a single consistent separator among `/`, `-`, `.`. Captures the three components in order. */
 const NUMERIC_DATE_RE = /^(\d{1,4})([/.-])(\d{1,2})\2(\d{1,4})$/
 
+/**
+ * A recognized month name/abbreviation. Required before `parseFallbackDate`
+ * hands a string to `Date.parse` — without this gate, an ID-like string
+ * such as `"ORD-50276"` merely *contains a letter* and `Date.parse` will
+ * happily (and wrongly) interpret it as some date, e.g. treating the
+ * trailing digits as a year, which is exactly how a plain string/id column
+ * was getting misclassified as a date column in practice.
+ */
+const MONTH_NAME_RE =
+  /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/i
+
+/** Upper bound on a plausible year, as a defense-in-depth backstop against `Date.parse` producing an absurd year even from a string that does contain a real month name (e.g. embedded in a longer, non-date string). */
+const MAX_REASONABLE_YEAR = 9999
+
 /** A resolved calendar date plus which recognized format produced it. */
 interface ParsedDate {
   year: number
@@ -289,19 +303,23 @@ function normalizeTwoDigitYear(yearStr: string, yearNum: number): number {
 /**
  * Fallback for date strings `Date.parse` can understand but the ISO/numeric
  * patterns above cannot, e.g. "January 5, 2024" or "5 Jan 2024". Only
- * accepted when the string contains letters, so we never let `Date.parse`
- * loosely reinterpret plain numeric strings that already failed the
- * stricter patterns above.
+ * accepted when the string contains a recognized month name — merely
+ * containing *some* letter (the original, looser check) let ID-like strings
+ * such as "ORD-50276" slip through, since `Date.parse` will still return
+ * *something* for them, misclassifying plain string/id columns as dates.
  */
 function parseFallbackDate(str: string): ParsedDate | null {
-  if (!/[a-z]/i.test(str)) return null
+  if (!MONTH_NAME_RE.test(str)) return null
 
   const ms = Date.parse(str)
   if (Number.isNaN(ms)) return null
 
   const d = new Date(ms)
+  const year = d.getFullYear()
+  if (year > MAX_REASONABLE_YEAR) return null
+
   return {
-    year: d.getFullYear(),
+    year,
     month: d.getMonth() + 1,
     day: d.getDate(),
     format: 'Other',

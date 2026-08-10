@@ -12,11 +12,31 @@ import { callMistralRawText } from './mistral'
 import { runStructuredInsightRequest } from './client'
 import {
   buildSystemPrompt,
+  condenseInsightGroupForContext,
   formatDatasetContext,
   formatInsightGroupInstruction,
 } from './prompt'
 import type { InsightGroup } from './schema'
 import type { DatasetAnalysisSummary } from './analysisSummary'
+
+/**
+ * Defensive fallback for Milestone 9.3: the prompt now requires every
+ * insight/recommendation item to set `priority`, but LLMs occasionally
+ * under-specify required fields despite explicit instructions. The UI's
+ * importance sort needs every item to have *some* priority to sort by, so
+ * this backfills `'medium'` onto any item the model left unset, right after
+ * the response is validated — storage and every downstream consumer
+ * (including persistence) then always see a populated `priority`, rather
+ * than each display component having to hope the prompt worked.
+ */
+function withDefaultPriority(group: InsightGroup): InsightGroup {
+  return {
+    ...group,
+    items: group.items.map((item) =>
+      item.priority ? item : { ...item, priority: 'medium' },
+    ),
+  }
+}
 
 /** The three `InsightGroup`s this milestone produces, one per structured-output call. */
 export interface BusinessInsightsResult {
@@ -32,13 +52,39 @@ const TASK_INSTRUCTIONS: Record<'kpi' | 'insight' | 'recommendation', string> =
       'from this dataset. Each KPI should be a concrete, measurable metric',
       '(e.g. total revenue, average order value, on-time delivery rate) that',
       'is plausible given the columns and statistics provided — do not invent',
-      'metrics the data cannot support. Where possible, put a computed or',
-      'estimated numeric value and unit in `metadata` (e.g.',
-      '`{ "value": 1234.56, "unit": "USD" }`), so the UI can render it as a',
-      'metric card; if a precise value cannot be derived from the summary,',
-      'omit `metadata` and describe the KPI qualitatively instead.',
+      'metrics the data cannot support. This means the metric must fit the',
+      "dataset's actual domain (see above) — e.g. a tourism/visitor dataset",
+      'should surface tourism metrics (average stay length, visitor volume',
+      'by destination, occupancy rate), not repurposed e-commerce ones.',
+      '',
+      'Never propose a sum of a per-entity attribute that has no real total',
+      '— e.g. "Total age", "Total customer ID", "Total rating", or "Total',
+      'zip code" are all meaningless and must never appear. If a column like',
+      'age or rating is worth surfacing, do so as an average, a range, or a',
+      'breakdown, never as a sum.',
+      '',
+      'Every single KPI MUST set `metadata` with a `value` and `unit`, e.g.',
+      '`{ "value": 1234.56, "unit": "USD" }` or `{ "value": 92.3, "unit": "%" }`',
+      '— a KPI card with no value defeats the point of a KPI, so this is',
+      'required, never optional. When an exact figure genuinely cannot be',
+      'computed from the summary provided (e.g. a rate/percentage that would',
+      'need row-level data you were not given), give your best-reasoned',
+      'estimate instead of omitting the value — derive it from whatever',
+      'related numeric/quality/date highlights are available (e.g. an outlier',
+      'or flagged-date count relative to total rows), and say so in the',
+      "description if it's an estimate rather than an exact count. Only",
+      'choose a metric you can back with at least an approximate number this',
+      'way — never propose a KPI and then leave it valueless.',
       'Tag each item with its business domain (e.g. "revenue", "operations",',
       '"data-quality", "customer") so the UI can filter by domain.',
+      '',
+      'Do NOT propose data-profile statistics as KPIs — e.g. row count,',
+      'column count, missing-value count/percentage, file size, or other',
+      'structural/quality metrics about the dataset itself. Those already',
+      'have their own dedicated Data Overview and Data Quality sections',
+      'elsewhere in the app. A KPI here must describe what the data implies',
+      'about the business (revenue, operations, customers, growth, risk,',
+      'etc.), not a fact about the dataset as a file.',
     ].join('\n'),
     insight: [
       'Task: Surface concrete insights about this dataset — patterns, trends,',
@@ -48,8 +94,12 @@ const TASK_INSTRUCTIONS: Record<'kpi' | 'insight' | 'recommendation', string> =
       'statistical highlights; do not speculate beyond what the summary',
       'supports.',
       'Tag each item with its business domain (e.g. "revenue",',
-      '"data-quality", "operations", "customer") and, where relevant, a',
-      '`priority` reflecting confidence/severity.',
+      '"data-quality", "operations", "customer"). Every item MUST also set',
+      '`priority` to exactly one of "high", "medium", or "low" — this field',
+      'is required, not optional, and must reflect your genuine confidence in',
+      'and the severity of that specific insight. Never omit `priority` and',
+      'never assign the same value to every item just to satisfy this',
+      'requirement; vary it honestly based on each insight\'s own merits.',
     ].join('\n'),
     recommendation: [
       'Task: Recommend concrete next steps or actions the client should take',
@@ -58,7 +108,12 @@ const TASK_INSTRUCTIONS: Record<'kpi' | 'insight' | 'recommendation', string> =
       'Each recommendation should be actionable and specific to what the data',
       'shows, not generic advice.',
       'Tag each item with its business domain (e.g. "revenue",',
-      '"data-quality", "operations") and set `priority` to reflect urgency.',
+      '"data-quality", "operations"). Every item MUST also set `priority` to',
+      'exactly one of "high", "medium", or "low" — this field is required,',
+      'not optional, and must reflect the genuine urgency of that specific',
+      'recommendation. Never omit `priority` and never assign the same value',
+      'to every item just to satisfy this requirement; vary it honestly based',
+      'on each recommendation\'s own merits.',
     ].join('\n'),
   }
 
@@ -73,17 +128,46 @@ function buildBusinessInsightsSystemPrompt(
   )
 }
 
-/** Builds the user message: the condensed dataset analysis summary as context. */
+/**
+ * Builds the user message: the condensed dataset analysis summary as
+ * context, plus — Phase 8, Milestone 8.1's chaining requirement — the
+ * already-generated data dictionary, condensed, when the pipeline has one
+ * available. Manual, standalone calls to this function (e.g. before the
+ * pipeline existed) simply omit `dictionary` and get the Phase 4 behavior.
+ *
+ * Tailored per call `type` rather than sending one identical payload to all
+ * three: `TASK_INSTRUCTIONS.kpi` explicitly forbids basing a KPI on
+ * data-profile/quality facts ("Do NOT propose data-profile statistics as
+ * KPIs"), so `qualityHighlights` is pure prompt-token waste for that call
+ * specifically — the insight/recommendation calls genuinely need it
+ * (surfacing and acting on data-quality issues is their whole point), so
+ * they keep it.
+ */
 function buildBusinessInsightsUserContent(
+  type: 'kpi' | 'insight' | 'recommendation',
   summary: DatasetAnalysisSummary,
+  dictionary?: InsightGroup,
 ): string {
+  const { qualityHighlights, ...rest } = summary
   return formatDatasetContext('Dataset analysis summary', {
-    ...summary,
+    ...rest,
+    ...(type !== 'kpi' ? { qualityHighlights } : {}),
+    ...(dictionary
+      ? { dataDictionary: condenseInsightGroupForContext(dictionary) }
+      : {}),
   })
 }
 
 export interface GenerateBusinessInsightsOptions {
   signal?: AbortSignal
+  /**
+   * The pipeline's already-generated data dictionary (Phase 8, Milestone
+   * 8.1), included as context so KPIs/insights/recommendations can build on
+   * what the dictionary already established about each column's meaning,
+   * per beyond-MVP.md's chained-pipeline requirement. Optional so this
+   * function still works standalone.
+   */
+  dictionary?: InsightGroup
 }
 
 /**
@@ -98,31 +182,37 @@ export async function generateBusinessInsights(
   summary: DatasetAnalysisSummary,
   options: GenerateBusinessInsightsOptions = {},
 ): Promise<BusinessInsightsResult> {
-  const userContent = buildBusinessInsightsUserContent(summary)
-
   const [kpis, insights, recommendations] = await Promise.all([
     runStructuredInsightRequest({
       type: 'kpi',
       systemPrompt: buildBusinessInsightsSystemPrompt('kpi'),
-      userContent,
+      userContent: buildBusinessInsightsUserContent('kpi', summary, options.dictionary),
       callProvider: callMistralRawText,
       signal: options.signal,
     }),
     runStructuredInsightRequest({
       type: 'insight',
       systemPrompt: buildBusinessInsightsSystemPrompt('insight'),
-      userContent,
+      userContent: buildBusinessInsightsUserContent('insight', summary, options.dictionary),
       callProvider: callMistralRawText,
       signal: options.signal,
     }),
     runStructuredInsightRequest({
       type: 'recommendation',
       systemPrompt: buildBusinessInsightsSystemPrompt('recommendation'),
-      userContent,
+      userContent: buildBusinessInsightsUserContent(
+        'recommendation',
+        summary,
+        options.dictionary,
+      ),
       callProvider: callMistralRawText,
       signal: options.signal,
     }),
   ])
 
-  return { kpis, insights, recommendations }
+  return {
+    kpis,
+    insights: withDefaultPriority(insights),
+    recommendations: withDefaultPriority(recommendations),
+  }
 }

@@ -228,6 +228,14 @@ assessment.
 **Checkpoint: Yes — first user-visible layout change of this batch.** Replaces Phase 5's entire navigation
 model; confirm before Phase 8-10 build real content on top of it.
 
+**Execution note (deviation from plan):** ran all three milestones sequentially rather than parallelizing
+7.1/7.2 — each needed live Playwright verification against the real, wired-up shell, and both touch
+`AppShell.tsx`, so parallel dispatch risked conflicting edits without actually saving time. Also,
+`ResultsView.tsx`/`ResultsTabNav.tsx` (Phase 5's scroll-spy model) were deleted outright by Milestone 7.3
+rather than left dormant, since nothing referenced them anymore. All three milestones verified independently
+(lint/tsc/build/Playwright re-run by the orchestrator, not just taken on the subagents' word) — Phase 7 is
+complete and confirmed.
+
 ### Phase 8 — Automated Sequential LLM Pipeline & Loading Experience
 **Mode:** sequential
 **Agents:**
@@ -248,6 +256,17 @@ model; confirm before Phase 8-10 build real content on top of it.
 **Checkpoint: Yes — mandatory, same reason as MVP Phase 4.** Live LLM calls, real prompt-chaining behavior,
 and removal of manual triggers all need a real look before Phase 9/10 build views on this output. Also the
 first phase in this batch with no rollback-cheap undo — prompt-chaining behavior is expensive to redo if wrong.
+
+**Execution note:** Milestones 8.1-8.3 were dispatched and verified sequentially (not parallelized 8.2/8.3 as
+the plan allowed) — each needed real end-to-end Playwright verification against the live pipeline, and running
+them one at a time kept the orchestrator's own independent re-verification tractable. All three verified
+independently (lint/tsc/build/vitest/Playwright re-run by the orchestrator, not just taken on the subagents'
+word), including inspecting real chained-prompt payloads for Milestone 8.1. **Observed:** the full 9-spec suite
+run back-to-back hits real Mistral/Gemini rate limits/latency under that much sequential live-API load — one
+spec's 180s overlay-clear wait timed out at 3.9 minutes in a full-suite run, then passed cleanly in 55s when
+re-run in isolation immediately after. Treat this as a test-throughput characteristic of this suite now that
+every spec drives a real 4-step LLM pipeline, not a product regression — confirm via isolated re-run before
+treating any single full-suite failure as real.
 
 ### Phase 9 — Business-Facing Views
 **Mode:** parallel
@@ -271,29 +290,150 @@ first phase in this batch with no rollback-cheap undo — prompt-chaining behavi
 **Checkpoint:** None required beyond Phase 8's — display-layer work over already-verified pipeline output,
 mechanically checkable.
 
-### Phase 10 — Data Views Rework
-**Mode:** mixed — parallel migrations, sequential audit-trail work
+**Execution note:** dispatched as two parallel batches, not all four at once — Milestones 9.3 (Business
+Insights) and 9.4 (Questions) touch entirely disjoint files (no shared `MainViewport.tsx` wiring needed for
+either) and ran genuinely in parallel with no conflicts. Milestones 9.1 (Dashboard) and 9.2 (Explanation) both
+needed to wire a new section into `MainViewport.tsx`'s shared placeholder block, so — same reasoning as
+Phase 7's execution note — they ran sequentially (9.2 first, simpler; then 9.1, the largest/most complex
+milestone in this phase) to avoid two agents editing the same file at once. All four milestones independently
+re-verified by the orchestrator (lint/tsc/build/vitest/full live-Playwright suite), not just taken on the
+subagents' word — 13/13 specs passing. Milestone 9.1 resolved a real spec ambiguity (filters must affect
+"every piece of information shown," but KPIs/insights are LLM-authored static text) by computing Dashboard's
+KPIs/notices/charts live, client-side, from the (filtered) table — consistent with this project's established
+rule against auto-firing paid LLM calls on UI interactions — while "quick insights" honestly reuses the
+pipeline's static output with a caption noting it isn't filter-reactive.
+
+### Phase 10 — LLM-Informed Cleaning Pipeline & Data Views Rework
+
+## Reconciliation summary — Phase 10 rework (2026-08-09)
+
+Re-reconciled after a live clarification from the user resolved a real gap the original Phase 10 plan didn't
+know it had: the audit trail it planned assumed cleaning already happened; in reality `analyzeDataQuality`
+only ever detected and flagged issues, never fixed them, and `analyzeDateColumns` computed normalized values
+into a side array without rewriting the table. The user confirmed, explicitly: (1) cleaning should do real
+work — the cleaned table must end up materially different from the raw parse, and (2) cleaning should be
+LLM-informed, not purely rule-based. Both are now load-bearing design decisions recorded in
+`docs/development-process.md`'s Phase 10 section, not assumptions.
+
+- **Traceability:** every beyond-MVP.md Data-section requirement still maps to a milestone (Overview → 10.4,
+  Data Dictionary → 10.1 + 10.4, Quality + "how issues were managed" → 10.2 + 10.5, Datasets comparison →
+  10.6). Clean.
+- **Scope creep:** none — cleaning still runs entirely client-side (deterministic ETL engine applying an
+  LLM-authored plan), no backend/server introduced.
+- **Traceability gaps — found and fixed directly during this reconciliation pass** (both low-risk, matching
+  existing established patterns, not judgment calls requiring a question back to the user):
+  - The new "Understand & Plan Cleaning" milestone didn't state which LLM provider it uses. **Fixed:** Mistral,
+    matching every other data-analysis-realm call (data dictionary, business insights, explanation).
+  - The milestone originally described "one call returns both" the data dictionary and the cleaning plan —
+    but every other structured-output call in this app is one call per output type/schema (dictionary, KPI,
+    insight, recommendation, question, explanation), never a combined heterogeneous response. **Fixed:** split
+    into two calls — the existing, unchanged `generateDataDictionary` and a new "Plan Cleaning" call — run
+    concurrently (same pattern as business insights' 3-call `Promise.all`), each with its own schema/failure
+    mode.
+- **Unclosable tasks:** none — every task has a concrete done-when. Clean.
+- **Ordering:** Milestones 10.1 (plan) → 10.2 (apply + audit) → 10.3 (reorder the shipped pipeline around
+  both) form a strict dependency chain; 10.4-10.6 (Data-section UI) all consume 10.1-10.3's stabilized output
+  and don't depend on each other. No violations.
+- **Live open questions:** none blocking. One implementation-level detail intentionally left to the executing
+  agent rather than pre-decided here: `parseJsonResponse`'s layered JSON-repair logic (`src/lib/llm/client.ts`)
+  is currently coupled to `InsightGroup`/`InsightType` — Milestone 10.1 needs it to validate a structurally
+  different schema, so some generalization of that parsing path is required. Flagged in "Notes for execution"
+  below, not a plan-level blocker.
+
+**Status:** clean, no unresolved contradictions carried into execution. This reconciliation pass also
+converted Phase 10 from "no checkpoint needed" to a mandatory one — the original plan assumed pure UI
+migration; the actual scope now reorders shipped, tested pipeline code (Phases 3 and 8) and changes real
+dataset values via a non-deterministic LLM call, not just narrative text.
+
+## Execution batches
+
+**Mode:** sequential through Milestones 10.1-10.3 (strict dependency chain, all touching the same core
+pipeline files), then mixed for 10.4-10.6.
+
 **Agents:**
-- `overview-migration-agent` → Milestone 10.1 (migrate `DataOverviewCard`/`ColumnDetailView`) — **parallel**
-- `dictionary-migration-agent` → Milestone 10.2 (migrate Data Dictionary panel) — **parallel**
+- `cleaning-plan-agent` → Milestone 10.1 (cleaning-plan schema, new "Plan Cleaning" LLM call, reposition
+  Data Dictionary generation to run alongside it) → **runs first, alone** — 10.2 needs a real plan to apply.
+  Verified by: a real call against the fixture dataset returns a schema-validated plan proposing at least one
+  categorical-unification mapping (the fixture has known casing variants) and the data dictionary still
+  generates correctly from its new, earlier position.
+- `etl-engine-agent` → Milestone 10.2 (ETL engine applies the plan, plan validation/skip-on-invalid, structured
+  audit trail) → **after** `cleaning-plan-agent` — needs a real plan shape to apply against. Verified by:
+  running the engine against the fixture dataset's known planted issues (3 duplicates, 2 outliers, 1 future
+  date, mixed casing variants) produces a genuinely different cleaned table (not just re-typed) with a
+  corresponding audit-log entry for each applied fix, and an intentionally-invalid plan entry (e.g. referencing
+  a nonexistent column, injected for the test) is skipped and logged rather than applied or crashing.
+- `pipeline-reorder-agent` → Milestone 10.3 (move EDA after cleaning, reorder `runPipeline.ts` + hook wiring,
+  update loading-overlay status text, extend `PersistedDataset`) → **after** `etl-engine-agent` — this is where
+  Phases 3/8's shipped code actually changes, so it needs 10.1/10.2's real outputs to reorder around, and runs
+  alone given how central `runPipeline.ts`/`useDatasetSession.ts` are (every later milestone reads through
+  them). Verified by: a full real upload of the fixture dataset produces EDA numbers that visibly differ from
+  a pre-cleaning baseline (e.g. the near-duplicate-categorical count drops after unification), resume-on-reload
+  still works correctly when interrupted mid-sequence at each new step, and the loading overlay shows both
+  "Understanding data..." and "Cleaning data..." as genuinely distinct, reachable stages (the latter was dead
+  text since Phase 8).
 
-  These two are pure relocations of already-correct Phase 5 components into the new shell — independent
-  files, no shared state, safe to parallelize. Verified by: pixel/behavior parity with the Phase 5 originals,
-  now reachable via the new sidebar.
+  **Mandatory checkpoint here, before continuing to 10.4-10.6** — per the reconciliation summary above, this
+  is the point where shipped pipeline behavior and real dataset values change; confirm it's correct before
+  building UI on top of it.
 
-- `audit-trail-agent` → Milestone 10.3 (new transformation-audit-log core logic in
-  `src/lib/analysis/`/`src/lib/parsers/`, migrated `DataQualitySummaryCard`, new "how issues were managed"
-  section) → **sequential, own batch** — this is new core logic (not a migration) touching the same analysis
-  modules Phase 2/3 built, so it runs alone to avoid conflicting edits with anything else touching those files
-  this phase. Verified against the fixture dataset's known planted issues (3 duplicates, 2 outliers, 1 future
-  date, mixed date formats) — each planted issue's fix should produce a corresponding audit-log entry.
-- `datasets-comparison-agent` → Milestone 10.4 (side-by-side raw/cleaned view, full downloads) →
-  **parallel with `audit-trail-agent`** — reads from Milestone 6.1's persisted record, doesn't touch the
-  analysis engine. Verified by: first 50 rows match on both sides for unchanged columns and differ exactly
-  where Phase 2/3 transformations apply; both downloads produce complete (non-truncated) CSVs.
+- `overview-dictionary-agent` → Milestone 10.4 (Overview + Data Dictionary migration into the new shell) —
+  **after the 10.3 checkpoint clears**
+- `quality-audit-agent` → Milestone 10.5 (Quality summary migration + "how issues were managed" section) →
+  **sequential with 10.4**, not parallel — both wire a destination into `MainViewport.tsx`'s shared section
+  block, the same shared-file conflict pattern Phases 7 and 9 already hit; dispatch one at a time rather than
+  risk two agents editing the same file concurrently.
+- `datasets-comparison-agent` → Milestone 10.6 (side-by-side raw/cleaned view + downloads) → **sequential
+  after 10.5**, same `MainViewport.tsx` reasoning. Verified by: the raw and cleaned tables now visibly differ
+  (not near-identical as the original plan would have produced) for rows touched by Milestone 10.2's fixes,
+  and both downloads produce complete, non-truncated CSVs.
 
-**Checkpoint:** None required — migrations are mechanically verifiable against Phase 5's existing behavior,
-and the audit-trail addition checks against the same known fixture-dataset issues used since Phase 2.
+**Checkpoint: Yes — mandatory, at the end of Milestone 10.3** (see above), before any Data-section UI is built
+on top of the reordered pipeline. A second, lighter look at 10.4-10.6's UI is reasonable but not required to
+be a hard gate — they're display-layer work over already-checkpointed output.
+
+## Notes for execution — Phase 10
+
+- **`parseJsonResponse` generalization:** `src/lib/llm/client.ts`'s layered JSON-repair parsing (fence-strip →
+  bracket-aware extraction → `JSON.parse` → `jsonrepair` → parse again) is currently written around
+  `InsightGroup`/`InsightType` validation. Milestone 10.1's new "Plan Cleaning" call needs the same repair
+  pipeline but a different final validation schema — generalize the function to accept an arbitrary zod schema
+  rather than duplicating the repair logic for one more call.
+- **Determinism regression is expected and accepted.** Per the resolved LLM-informed-cleaning decision, the
+  same fixture dataset re-uploaded (or re-run via "Re-run analysis") can now produce slightly different cleaned
+  values, not just different narrative text. Verification for 10.1-10.3 should check for *plausible, correctly
+  structured* cleaning decisions against the fixture's known planted issues, not byte-identical output across
+  runs.
+- **Reuse the same fixture dataset** (`docs/lakeside_orders_sample.csv`, known planted issues) for every
+  milestone's verification in this phase, consistent with every phase since Phase 2.
+
+**Execution note:** all six milestones dispatched and independently re-verified exactly as planned —
+10.1 → 10.2 → 10.3 sequential (strict dependency chain), a mandatory checkpoint presented to and cleared by
+the user after 10.3 with real before/after numbers from the fixture dataset, then 10.4 → 10.5 → 10.6
+sequential (shared `MainViewport.tsx` file). One real deviation from the original plan: independent
+investigation before dispatching 10.4 found that `MainViewport.tsx` already wired Overview and Data
+Dictionary under the current shell, sourced from the pipeline's `analysis` output — Milestones 10.1-10.3 had
+already made that output genuinely post-clean, so 10.4's actual remaining scope was live verification (proving
+cleaned-vs-raw numbers really differ on screen) plus one small copy clarification, not a rebuild; this was
+confirmed with a real live run before scoping the dispatched agent down accordingly, rather than dispatching a
+full build agent against work that didn't exist. A genuine bug was found and fixed mid-phase (10.3): a race in
+`persistDatasetPatch` where the new synchronous `clean`/`eda` steps' rapid same-tick writes could land out of
+order and permanently strand a dataset on `'running'` after reload — fixed with a per-dataset write queue,
+independently confirmed via a real interrupted-and-resumed pipeline run. All milestones independently
+re-verified by the orchestrator (lint/tsc/build/vitest/live-API Playwright against the fixture's known planted
+issues — casing-variant categoricals, mixed date formats — not just taken on the subagents' word); real,
+measurable cleaning effects were confirmed at multiple checkpoints (e.g. `chnl`/`prod_cat`/`currency`
+inconsistent-categorical counts dropping after cleaning, real audit-trail entries with verbatim LLM-stated
+reasons and 100+-row affected counts). One mid-phase user-directed change (default active section switched
+from Overview to Dashboard) required updating the "processing complete" readiness signal in ~10 pre-existing
+e2e specs, since Overview's heading had been every spec's generic "pipeline finished" anchor — done directly
+by the orchestrator rather than as a dispatched milestone, since it was a small, mechanical, well-understood
+change. Two apparent test failures during 10.6's independent verification (`sidebar.spec.ts`,
+`top-bar-kpis.spec.ts`) were investigated rather than assumed flaky: `top-bar-kpis.spec.ts` and one of
+`sidebar.spec.ts`'s two failure modes were confirmed as genuine rate-limit flakiness (passed cleanly on
+isolated re-run, consistent with this project's established pattern under sustained live-API load), but
+`sidebar.spec.ts`'s other failure mode was a real, deterministic bug: its `SECTION_CONTENT` fixture still
+expected the old "coming in Phase 10" placeholder text for the Datasets section, which Milestone 10.6 had
+just replaced with real content — fixed directly (not left as a false "known flake").
 
 ### Phase 11 — PDF Report & Final Polish
 **Mode:** sequential
@@ -328,6 +468,38 @@ and the audit-trail addition checks against the same known fixture-dataset issue
 ## Sign-off
 
 Per the skill's Step 5, live agent dispatch (Step 6) does not start until this plan is reviewed and confirmed.
-Phases 1-5 above were dispatched and completed in an earlier session. **Phases 6-11 (the beyond-MVP batch) are
-planned but not yet dispatched** — awaiting the user's go-ahead before `storage-layer-agent` (Phase 6,
-Milestone 6.1) is launched.
+Phases 1-5 were dispatched and completed in an earlier session. Phases 6-10 were dispatched, built, and
+independently verified in an earlier session; Phase 9's work was verified but sat uncommitted alongside Phase
+10's reconciliation discussion — both phases' changes were committed together in one commit, since they ended
+up intermixed in shared files (`MainViewport.tsx` in particular) by the time Phase 10 finished. **Phase 11
+(PDF Report & Final Polish) is now also dispatched, built, and independently verified** — see its "Execution
+note" below. All 11 phases of the roadmap are complete as of this session.
+
+### Execution note — Phase 11
+
+Dispatched sequentially exactly as planned: `pdf-report-agent` (Milestone 11.1) first, then
+`final-polish-agent` (Milestone 11.2) after it, so polish coverage included the finished PDF button rather
+than its earlier console-log stub. Before dispatching, the orchestrator found and fixed one unrelated test
+flake in `dashboard.spec.ts` (a non-polling Recharts bar-count assertion racing `ResponsiveContainer`'s
+`ResizeObserver` tick — not a product bug) surfaced by a leftover background verification run from Phase 10.
+
+`pdf-report-agent` resolved the "not a raw screenshot dump" constraint by splitting the report into real
+jsPDF text/vector content (reusing `dashboardMetrics.ts`'s pure KPI/notice/chart functions run unfiltered,
+mirroring `markdownReport.ts`'s existing content-assembly pattern) plus `html2canvas`-captured PNGs for only
+the two Dashboard chart visuals, rendered off-screen in a detached host to sidestep `MainViewport.tsx`'s
+`display:none`-when-inactive section mounting. Verified independently (lint/tsc/build/vitest, plus a live,
+content-asserting Playwright e2e run reviewed and re-run by the orchestrator, not just taken on the
+subagent's word) before proceeding.
+
+`final-polish-agent` initially stopped mid-task waiting on its own backgrounded Chromium e2e run without
+checking its output — resumed via `SendMessage` with an explicit instruction to check the output directly
+rather than wait on a notification a subagent doesn't reliably receive. It went on to find and fix two real
+bugs during re-verification (not just confirm the status quo): a missing Escape-to-close on the mobile
+"Sections" nav overlay, and an intermittent WebKit-only file-read `NotFoundError` (mitigated via a bounded
+retry, documented honestly as a reduction not an elimination). Cross-browser coverage is an explicit,
+documented engine-level proxy (Chromium/Firefox/WebKit standing in for Chrome/Edge/Firefox/Safari — no real
+branded-browser installs available in this environment), not literal branded-browser testing — recorded as a
+caveat in `README.md`/`NOTES.md` rather than overstated. Verified independently by the orchestrator: full
+lint/tsc/build/vitest re-run, plus the new `responsive-and-keyboard.spec.ts` and `sidebar.spec.ts` re-run live
+on both the Chromium and WebKit projects (WebKit passing clean on the first try, consistent with the
+documented ~85-90% post-fix success rate).

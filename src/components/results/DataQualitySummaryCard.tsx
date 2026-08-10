@@ -88,8 +88,9 @@ export function DataQualitySummaryCard({
           Data quality summary
         </h2>
         <p className="text-sm text-slate-600 dark:text-slate-400">
-          Missing values, duplicate rows, and statistical outliers detected
-          across the dataset.
+          Missing values, duplicate rows, and statistical outliers remaining
+          after automated cleaning. See "How issues were managed" below for
+          what was already fixed.
         </p>
       </div>
 

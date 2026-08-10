@@ -147,8 +147,12 @@ export function buildAnalysisSummary(
  * duplicates, or flagged columns) and capping the total at
  * `MAX_QUALITY_HIGHLIGHTS`, worst severity first, so a wide dataset doesn't
  * dump dozens of "no issues" entries into the prompt.
+ *
+ * Exported so Milestone 10.1's `generateCleaningPlan` (`cleaningPlan.ts`) can
+ * reuse the exact same condensing logic for its raw-table pre-clean scan
+ * instead of re-deriving it.
  */
-function summarizeQualityHighlights(
+export function summarizeQualityHighlights(
   quality: ReturnType<typeof analyzeDataQuality>,
 ): QualityHighlight[] {
   const all: QualityCheckResult[] = [

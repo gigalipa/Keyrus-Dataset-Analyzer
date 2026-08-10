@@ -70,8 +70,7 @@ export async function parseCsvTsv(
     )
   }
 
-  const encoding = await detectEncoding(file)
-  const text = await readFileAsText(file, encoding)
+  const { encoding, text } = await readFileContentsWithRetry(file)
 
   const delimiter =
     options.delimiter ?? DELIMITER_BY_EXTENSION[getFileExtension(file.name)]
@@ -107,6 +106,48 @@ export async function parseCsvTsv(
     rowCount: rows.length,
     encoding,
     delimiter: result.meta.delimiter || delimiter || ',',
+  }
+}
+
+/**
+ * True for the transient `NotFoundError` DOMException described in
+ * `detectEncoding`'s doc comment above — matched by `.name` (the standard
+ * DOMException discriminator, present on both `DOMException` and `Error`
+ * instances) rather than message text, which could vary or be localized.
+ */
+function isTransientFileReadError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { name?: unknown }).name === 'NotFoundError'
+  )
+}
+
+/** Number of extra attempts `readFileContentsWithRetry` makes after the transient WebKit `NotFoundError` — live testing showed occasional back-to-back failures, so more than one retry is needed to make the failure rate negligible. */
+const MAX_TRANSIENT_READ_RETRIES = 3
+
+/**
+ * Reads the encoding-detected sample and the full decoded text together,
+ * retrying the whole pair (with a short, slightly increasing delay) if a
+ * transient WebKit `NotFoundError` (see `detectEncoding`'s doc comment)
+ * strikes either read. Any other error propagates immediately without
+ * retrying; if every attempt hits the transient error, the last one's error
+ * propagates as-is.
+ */
+async function readFileContentsWithRetry(
+  file: File,
+): Promise<{ encoding: DetectedEncoding; text: string }> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const encoding = await detectEncoding(file)
+      const text = await readFileAsText(file, encoding)
+      return { encoding, text }
+    } catch (error) {
+      if (!isTransientFileReadError(error) || attempt >= MAX_TRANSIENT_READ_RETRIES) {
+        throw error
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50 * (attempt + 1)))
+    }
   }
 }
 
@@ -165,6 +206,23 @@ function makeHeadersUnique(rawHeaders: string[]): string[] {
  * path first and transparently falls back to a full-file read (already a
  * step `readFileAsText` performs anyway) if it throws, rather than letting
  * the whole upload fail on an otherwise-working file.
+ *
+ * Milestone 11.2 follow-up (cross-cutting WebKit re-verification): live
+ * testing found the *same* `NotFoundError` can also strike the fallback
+ * (`file.arrayBuffer()`) and even `file.stream()` — any read of a freshly
+ * `<input type="file">`-selected `File`'s bytes, not just the sliced path —
+ * intermittently on a "cold" WebKit engine/process, with no reproducible
+ * pattern beyond "the very first byte-read(s) of a file in this browser
+ * context." It usually clears within 1-2 retries, but occasionally every
+ * read attempt against that specific `File` handle fails for the rest of
+ * that browser context's life (most consistent with a Playwright-WebKit/
+ * Windows synthetic-`setInputFiles` quirk in the file-object's backing
+ * store registration, not a spec-level or reproducible real-Safari bug).
+ * `readFileContentsWithRetry` below catches that specific transient error
+ * one level up (wrapping both the encoding sniff and the full text read
+ * together) and retries with a short, increasing delay before giving up for
+ * real — this measurably reduces but does not fully eliminate the failure
+ * rate in this environment.
  */
 export async function detectEncoding(file: File): Promise<DetectedEncoding> {
   const bytes = await readEncodingSampleBytes(file)

@@ -4,7 +4,7 @@ A React/Tailwind web app for consultant-first data assessment — **MVP complete
 
 ## Summary
 
-This project helps consultants quickly profile and assess raw customer datasets (orders, transactions, etc.) and produce a business-friendly assessment: a data dictionary, data-quality checks, KPI suggestions, insights, and recommended questions for the client.
+This project helps consultants quickly profile and assess raw customer datasets (orders, transactions, etc.) and produce a business-friendly assessment: a data dictionary, data-quality checks, KPIs, insights, and recommended questions for the client.
 
 The app runs entirely in the browser with no backend: client-side parsing and transformation (Arquero), plus LLM-driven narrative generation for human-friendly output.
 
@@ -20,7 +20,7 @@ The app runs entirely in the browser with no backend: client-side parsing and tr
 
 ```bash
 # 1. Clone the repo and install dependencies
-git clone <this-repo-url>
+git clone https://github.com/gigalipa/Keyrus-Dataset-Analyzer
 cd lakeside-keyrus
 npm install
 
@@ -40,33 +40,23 @@ npm run dev
 Other useful commands, once installed:
 
 ```bash
-npm run build          # type-check (tsc -b) + production build
-npm run lint            # eslint
-npx tsc -b --noEmit     # type-check only
-npm run test             # unit tests (vitest)
-npx playwright install   # one-time: install browser binaries for e2e tests
-npx playwright test      # end-to-end tests (real browsers, hits the live LLM APIs above)
+npm run build        # type-check (tsc -b) + production build
+npm run lint          # eslint
+npx tsc -b --noEmit   # type-check only
 ```
 
 ## Current Status
 
-- **MVP complete, not yet a fully developed product.** Phases 1–5 (Foundation & Upload, Data Ingestion Pipeline, Data Analysis Engine, LLM-Powered Insights, Results Presentation & Polish) are done; see [docs/development-process.md](docs/development-process.md) for the fully checked-off task list. Live MVP testing showed the interface is comprehensive at a data-analysis level but not yet easy to use for non-technical, non-data-educated users — **Phases 6–11**, planned from [docs/beyond-MVP.md](docs/beyond-MVP.md), rework the app into a persistent, dashboard-style tool (local multi-dataset history, an automatic LLM analysis pipeline, a top-bar/sidebar shell, business-facing dashboard views, and a real PDF report) and are the next step before this is a fully developed product, not an afterthought.
-- **Source code:** Vite + React + TypeScript + Tailwind v4 app in `src/`, building and linting clean (`npm run build`, `npm run lint`, `npx tsc -b --noEmit`).
-- **The app is now end-to-end functional.** Drop in a CSV/TSV/XLS/XLSX/SQL file and get a real, tabbed assessment:
-  - Drag-and-drop (or click-to-browse) upload with extension validation and status feedback, feeding real parsers for all five formats (`src/lib/parsers/`) normalized into Arquero tables.
-  - A full data-analysis engine (`src/lib/analysis/`) runs automatically on upload: column/type inference, descriptive statistics with IQR outlier detection, data-quality checks (missing values, duplicates, near-duplicate categoricals, mixed types), and date detection/range/normalization to YYYY-MM-DD.
-  - Results are organized into a sticky, keyboard-navigable tab bar — Overview, Data Quality, Data Dictionary, Business Insights, Client Questions — with scroll-spy highlighting and loading skeletons.
-  - LLM-powered insights via a shared, schema-validated content contract (`src/lib/llm/schema.ts`) so the UI renders and filters any generated content generically, by type and by tag, without hardcoding layout or fixed item counts. The data dictionary generates automatically on upload; business insights and client questions generate on demand (per-tab "Generate" button, to avoid burning API calls on every casual upload). Data dictionary and business insights run on Mistral, client questions on Google AI Studio (Gemini) — all real-verified against live API calls, with response parsing hardened against malformed LLM output (fence-stripping, bracket-aware extraction, `jsonrepair`).
-  - Copy-to-clipboard on individual insights/recommendations/questions, and a one-click Markdown report download bundling everything generated so far (a fully-formatted PDF export is the intended next step — see `src/lib/report/markdownReport.ts`).
-  - Responsive from mobile to desktop and cross-browser tested (Chromium, Firefox, and Playwright's WebKit as the closest available Safari proxy on this Windows dev machine — see `NOTES.md` for what that honestly does and doesn't cover).
 - **Planning & process artifacts:**
-  - [docs/project-description.md](docs/project-description.md) — the spec and requirements
-  - [docs/development-process.md](docs/development-process.md) — the phased roadmap (5 phases, 17 milestones, 65+ tasks)
-  - [docs/orchestration-plan.md](docs/orchestration-plan.md) — the multi-agent execution plan: batching, checkpoints, verification per phase
-  - [.vibe/skills/generate-development-process/](.vibe/skills/generate-development-process/) — skill used to generate the roadmap
-  - [.vibe/skills/orchestrate-development-process/](.vibe/skills/orchestrate-development-process/) — skill for multi-agent execution
-  - [.claude/skills/update-repo/](.claude/skills/update-repo/) — skill that syncs these docs and commits at each milestone/phase checkpoint
-  - `NOTES.md` — development notes, process guidance, and issues encountered along the way
+  - [docs/project-description.md](docs/project-description.md) — the spec and requirements.
+  - [docs/development-process.md](docs/development-process.md) — the phased roadmap (11 phases across the MVP and beyond-MVP batches).
+  - [docs/orchestration-plan.md](docs/orchestration-plan.md) — the multi-agent execution plan: batching, checkpoints, verification per phase.
+  - [.vibe/skills/generate-development-process/](.vibe/skills/generate-development-process/) — skill used to generate the roadmap.
+  - [.vibe/skills/orchestrate-development-process/](.vibe/skills/orchestrate-development-process/) — skill for multi-agent execution.
+  - [.claude/skills/update-repo/](.claude/skills/update-repo/) — skill that syncs these docs and commits at each milestone/phase checkpoint.
+  - [docs/current-status.md](docs/current-status.md) — summarization of the current status of the system.
+  - `NOTES.md` — development notes, process guidance, and issues encountered along the way.
+  
 
 ## Goals
 
@@ -76,25 +66,25 @@ npx playwright test      # end-to-end tests (real browsers, hits the live LLM AP
 4. ✅ Generate a data dictionary and business insights via an LLM.
 5. ✅ Present findings in a clear, consultant-facing UI.
 
-All five original goals are met. Development history:
+Development history:
 
 1. ~~**Phase 1 — Project Foundation & File Upload**~~ ✅ Done — Vite/React/Tailwind scaffold, responsive shell, drag-and-drop upload with validation, CSV/TSV preview.
 2. ~~**Phase 2 — Data Ingestion Pipeline**~~ ✅ Done — CSV/TSV, Excel, and SQL parsers, normalized into Arquero tables.
 3. ~~**Phase 3 — Data Analysis Engine**~~ ✅ Done — column/type inference, descriptive statistics with outlier detection, data-quality checks, date detection/normalization.
 4. ~~**Phase 4 — LLM-Powered Insights**~~ ✅ Done — Mistral + Google AI Studio clients, shared structured-output schema, data dictionary/business insights/client questions all generating and rendering real content.
 5. ~~**Phase 5 — Results Presentation & Polish**~~ ✅ Done — real pipeline wired end-to-end, tabbed results UI, loading skeletons, copy-to-clipboard, responsive/keyboard/cross-browser polish, downloadable Markdown report.
-6. **Phase 6 — Persistent Storage & Multi-Dataset History (next):** planned, not yet built — IndexedDB persistence layer, History sidebar, empty-state upload modal.
-7. **Phase 7 — Application Shell Redesign:** planned — top bar, collapsible left sidebar, center-viewport routing.
-8. **Phase 8 — Automated Sequential LLM Pipeline & Loading Experience:** planned — chained-context LLM calls replacing manual "Generate" buttons, stage-by-stage loading overlay, business-facing KPI cards.
-9. **Phase 9 — Business-Facing Views:** planned — Dashboard (Recharts, cross-widget filters), Explanation, filter/sort Business Insights and Questions cards.
-10. **Phase 10 — Data Views Rework:** planned — Overview/Data Dictionary migration, a new transformation-audit-log for Quality, raw-vs-cleaned Datasets comparison with downloads.
-11. **Phase 11 — PDF Report & Final Polish:** planned — real PDF report export (jsPDF + html2canvas), cross-cutting re-verification of the new shell.
+6. ~~**Phase 6 — Persistent Storage & Multi-Dataset History**~~ ✅ Done — IndexedDB persistence layer (`src/lib/storage/`), History sidebar with dataset switching and delete, and a conditional "Upload a dataset" modal that only appears when there's nothing saved yet.
+7. ~~**Phase 7 — Application Shell Redesign**~~ ✅ Done — top bar with a conditionally-visible History button, collapsible left sidebar with all 8 destinations, and sidebar-routed center viewport that replaces Phase 5's scroll-spy tab bar entirely.
+8. ~~**Phase 8 — Automated Sequential LLM Pipeline & Loading Experience**~~ ✅ Done — chained-context LLM calls (verified via real prompt payloads) replacing manual "Generate" buttons, stage-by-stage loading overlay that locks the shell, business-facing KPI cards in the top bar.
+9. ~~**Phase 9 — Business-Facing Views**~~ ✅ Done — Dashboard (Recharts, live client-computed KPIs/notices/charts, a real cross-widget filter), Explanation (real prose), filter/sort Business Insights and Questions cards with importance.
+10. ~~**Phase 10 — LLM-Informed Cleaning Pipeline & Data Views Rework**~~ ✅ Done — a real "understand → plan cleaning → clean → analyze" stage ahead of EDA (an LLM-authored cleaning plan applied by a deterministic ETL engine), Overview/Data Dictionary now reflecting genuinely cleaned data, a "How issues were managed" audit trail in Quality, and a raw-vs-cleaned Datasets comparison with full CSV downloads.
+11. ~~**Phase 11 — PDF Report & Final Polish**~~ ✅ Done — a real, client-presentable multi-page PDF report (jsPDF + html2canvas) covering Dashboard KPIs/charts, Explanation, Business Insights, Questions, and Data Quality, wired to the sidebar's "Download PDF Report" button; cross-cutting re-verification of the new shell (responsive breakpoints, keyboard navigation, cross-browser) found and fixed two real bugs along the way (a missing Escape-to-close on the mobile nav overlay, and a mitigated intermittent WebKit file-read error).
 
 Full task-level detail lives in [docs/development-process.md](docs/development-process.md); the execution/batching plan is in [docs/orchestration-plan.md](docs/orchestration-plan.md).
 
 ## Development time use
 
-Time actually spent, derived from `git log` timestamps (all commits landed same-day, 2026-08-08), plus the untracked planning/setup work that preceded the first commit.
+Time actually spent, derived from `git log` timestamps, plus the untracked planning/setup work that preceded the first commit. The MVP (Phases 1–5) landed same-day, 2026-08-08; the beyond-MVP batch (Phases 6–11) ran 2026-08-09.
 
 ### MVP (Phases 1–5) — actual
 
@@ -111,29 +101,36 @@ Time actually spent, derived from `git log` timestamps (all commits landed same-
 | AFK Time for lunch and other personal affairs | 12:00 → 13:00 / 14:00 → 16:00 | 3h |
 | **Total, planning through MVP close-out** | 09:42 → 16:34 (+2h pre-work - 3h AFK) | **~5h 52m** |
 
-### Phases 6–11 (beyond-MVP batch) — estimated
+### Phases 6–11 (beyond-MVP batch) — actual
 
-Not yet built; estimated from each phase's scope in [docs/orchestration-plan.md](docs/orchestration-plan.md) relative to the actual MVP phases above (e.g. Phase 8's live-LLM-call complexity is sized against Phase 4's actual 1h 24m; Phase 11's mandatory close-out review is sized against Phase 5's).
+All six phases are done. Timed the same way as the MVP table above: real spans between `git log` commit timestamps, each phase's start being the previous phase's completion commit. The one multi-day gap (planning commit on 2026-08-08 evening → Phase 6's first commit the next morning) is excluded, same treatment as the MVP table's lunch AFK time.
 
-| Phase | Estimate | Why |
+| Phase | Span | Duration |
 |---|---|---|
-| 6 — Persistent Storage & Multi-Dataset History | 1.0–1.5h | New but self-contained data layer, similar shape to Phase 2's parser work |
-| 7 — Application Shell Redesign | 1.5–2.0h | Full navigation-model replacement; first user-visible checkpoint |
-| 8 — Automated Sequential LLM Pipeline & Loading Experience | 2.0–2.5h | Highest-risk phase — live chained LLM calls, prompt-context correctness, mandatory checkpoint |
-| 9 — Business-Facing Views | 2.0–2.5h | Four parallel workstreams, one new dependency (Recharts), new dashboard-wide filtering logic |
-| 10 — Data Views Rework | 1.5–2.0h | Mostly migration of existing components, plus new audit-trail core logic |
-| 11 — PDF Report & Final Polish | 2.0–2.5h | New PDF pipeline (jsPDF + html2canvas) plus full responsive/keyboard/cross-browser re-verification and a mandatory close-out code review, mirroring Phase 5's cost |
-| **Total, Phases 6–11** | **~10–13h** | |
+| 6 — Persistent Storage & Multi-Dataset History | 05:10 → 05:34 | 23m |
+| 7 — Application Shell Redesign | 05:34 → 07:38 | 1h 04m |
+| AFK time for yoga | 6:30 → 7:30 | 1h |
+| 8 — Automated Sequential LLM Pipeline & Loading Experience | 07:38 → 09:07 | 1h 29m |
+| AFK time for breakfast | 8:00 → 9:00 | 1h |
+| 9–10 — Business-Facing Views & LLM-Informed Cleaning/Data Views Rework *(one combined commit — see `docs/orchestration-plan.md` for why)* | 11:07 → 20:02 | 8h 55m |
+| AFK time for lunch and personal affairs | 12:00 → 17:00 | 5h |
+| 11 — PDF Report & Final Polish | 20:02 → 22:11 | 2h 09m |
+| AFK time for dinner & family time | 20:30 → 22:00 | 1h 30m |
+| README sync (Requirements/Installation) | 22:11 → 22:19 | 8m |
+| **Total, Phases 6–11** | 05:10 → 22:19 (-8h 30m AFK) | **5h 39m** |
 
-**Projected grand total (planning → Phases 1–11 complete): ~20–23h.**
+**Grand total (planning → Phases 1–11 complete): ~12h.**
 
-## Possible future work
+## Future work
 
-Not required by the original spec, but natural next steps if this continues past its current scope:
-- **Fully-formatted PDF report export**, replacing/complementing the current Markdown download (flagged as the intended goal in `src/lib/report/markdownReport.ts`).
-- **Bundle size / code-splitting** — the production bundle is sizable now that Arquero, the format parsers, and the LLM SDKs are wired in for real; the three LLM panels are already lazy-loaded, but there's more room (e.g. splitting Excel/SQL parsing out of the main chunk).
-- **Real Safari verification** — cross-browser testing so far used Playwright's WebKit build on Windows as the closest available proxy, not literal Safari on macOS.
-- Anything in `docs/development-process.md`'s "Deferred / out of scope" section (auth, backend, database, etc.) — all explicitly excluded by the original spec, not gaps.
+The 11-phase roadmap defined by `docs/project-description.md`/`docs/beyond-MVP.md` is complete — there's no remaining scope from the spec itself. What's left from here is narrower: testing, adjusting, and optimizing the LLM-generated content the app already produces, not new features.
+
+- **Periodic manual QA against varied real-world datasets** (retail, tourism, healthcare, logistics, etc.), not just the fixture dataset. This is exactly how the "Total age" KPI bug got caught — a dataset from a domain the app hadn't been tried on yet surfaced a metric that was schema-valid but business-nonsensical. Domain-mismatch issues like that one tend to only show up with a genuinely different dataset shape.
+- **Track model/version currency.** `.env.example` pins specific Mistral/Gemini model IDs that will age as both providers ship newer versions — periodically re-verify the configured primary/fallback pair still exists and re-check output quality after any change, since a model swap can shift both structured-output reliability and the kind of judgment calls (like the age-summing one) the prompts now rely on the model to make correctly.
+- **Compare the two providers on domain-sensitive tasks.** Data dictionary/business insights run on Mistral, client questions on Gemini — worth occasionally checking whether both follow the "reason about the dataset's business domain first" instruction equally well, since prompt-following quality can differ between providers even with identical wording.
+- **Multi-language LLM output**, if it ever becomes relevant — already flagged in the original roadmap as a deferred, revisit-when-needed item ("if international clients are targeted"). Since every user-facing string this app generates is prompt-driven, this would stay a small, contained prompt change (a language parameter in the system prompt), not an architectural one.
+
+Two smaller, non-LLM items also still stand: production bundle code-splitting (the three LLM panels are already lazy-loaded; there's more room, e.g. splitting Excel/SQL parsing out of the main chunk), and literal Safari verification on macOS (cross-browser checking so far used Playwright's WebKit build on Windows as the closest available proxy — see `NOTES.md`).
 
 ## How to Contribute
 

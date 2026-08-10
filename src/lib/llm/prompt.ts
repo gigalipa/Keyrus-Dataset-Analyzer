@@ -8,7 +8,7 @@
  * own prompt template, which composes these helpers rather than
  * reimplementing prompt scaffolding.
  */
-import { INSIGHT_TYPE_BOUNDS, type InsightType } from './schema'
+import { INSIGHT_TYPE_BOUNDS, type InsightGroup, type InsightType } from './schema'
 
 /** A minimal, provider-agnostic chat message. */
 export interface PromptMessage {
@@ -23,11 +23,30 @@ export interface PromptMessage {
  */
 export function buildSystemPrompt(taskInstructions: string): string {
   return [
-    'You are a senior data consultant assistant helping a human consultant',
-    'quickly understand a client dataset. You analyze structured summaries',
-    'of already-computed dataset statistics (never raw client records) and',
+    'You are a senior data analyst consultant helping a human consultant',
+    'understand a client dataset. You analyze structured summaries and',
     'respond with concise, business-relevant, non-technical language a',
     "client's stakeholders could understand.",
+    '',
+    'Before proposing any metric, first work out what kind of business or',
+    'activity this dataset actually represents from its column names and',
+    'statistics (e.g. e-commerce orders, tourism/visitor records, support',
+    'tickets, healthcare visits) — do not default to retail/revenue framing',
+    'just because that is a common dataset shape. Every metric you propose',
+    'must be one this specific dataset genuinely supports and that a',
+    'stakeholder in that domain would actually track, not a generic metric',
+    'copied from a different kind of business.',
+    '',
+    'Also apply basic statistical judgment: summing (or averaging) a column',
+    'is only meaningful when the total (or average) itself means something',
+    'real. Per-entity attributes like age, a rating/score, a percentage,',
+    'rate, ratio, or index value, or an identifier/code column do not',
+    'become a meaningful business figure just because they are numeric —',
+    '"total age", "total customer ID" or "Total unit price", for example,',
+    ' are meaningless and must never be proposed.',
+    'When such a column matters, describe it the way it is actually useful',
+    '(e.g. an average, a range, or a distribution/breakdown by segment),',
+    'or leave it out entirely.',
     '',
     taskInstructions,
     '',
@@ -114,6 +133,27 @@ export function buildCorrectiveRetryMessage(issues: string): string {
     'requirement above. Do not include any explanation, markdown, or text',
     'outside the JSON object.',
   ].join('\n')
+}
+
+/**
+ * Condenses an already-generated `InsightGroup` down to just what's useful
+ * as *context* for a later, chained prompt (Phase 8, Milestone 8.1's
+ * "feed prior-step output into each subsequent LLM prompt") — title,
+ * description, tags, and priority if set. Drops `id` and `metadata` (e.g.
+ * a dictionary entry's raw `sampleValues`, a KPI's numeric `value`/`unit`)
+ * since those are either irrelevant to a downstream prompt or would bloat
+ * it without adding useful signal; the description text already carries the
+ * substance a later step needs to build on.
+ */
+export function condenseInsightGroupForContext(
+  group: InsightGroup,
+): Array<{ title: string; description: string; tags: string[]; priority?: string }> {
+  return group.items.map((item) => ({
+    title: item.title,
+    description: item.description,
+    tags: item.tags,
+    ...(item.priority ? { priority: item.priority } : {}),
+  }))
 }
 
 /** Assembles the final message list (system + user) for a structured-output call. */

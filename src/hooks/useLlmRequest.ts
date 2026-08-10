@@ -60,5 +60,18 @@ export function useLlmRequest<T>() {
     setState(INITIAL_STATE<T>())
   }, [])
 
-  return { ...state, run, reset }
+  /**
+   * Sets `status`/`data` straight to `'success'` without calling `run` —
+   * for hydrating from an already-generated result (e.g. a value persisted
+   * to IndexedDB in a previous session/dataset-switch) instead of re-running
+   * the underlying LLM call. Cancels any in-flight request the same way
+   * `reset` does, since seeding supersedes whatever was in progress.
+   */
+  const seed = useCallback((data: T) => {
+    abortControllerRef.current?.abort()
+    requestIdRef.current++
+    setState({ status: 'success', data, error: null })
+  }, [])
+
+  return { ...state, run, reset, seed }
 }
